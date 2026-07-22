@@ -1,5 +1,3 @@
-"""Simulates complex clinical events with deep metadata for role-based views."""
-
 import random
 import time
 import uuid
@@ -7,29 +5,29 @@ import uuid
 MEDICATIONS = [
     {
         "generic": "Zolpidem Tartrate", "brand": "Ambien", "class": "Sedative-Hypnotic", 
-        "indication": "Insomnia", "off_label": "Restless leg syndrome (rarely)", 
+        "indication": "Insomnia", "off_label": "Restless leg syndrome", 
         "schedule": "IV", "moa": "GABA-A receptor agonist", 
-        "contraindications": "Complex sleep behaviors, severe hepatic impairment", 
-        "sig": "Take 1 tablet by mouth at bedtime.", "storage": "Store at room temperature away from light.", 
-        "side_effects": "Dizziness, daytime drowsiness, complex sleep behaviors.", "interactions": "CNS depressants, alcohol.",
+        "contraindications": "Complex sleep behaviors", 
+        "sig": "Take 1 tablet by mouth at bedtime.", "storage": "Store at room temperature.", 
+        "side_effects": "Dizziness, daytime drowsiness.", "interactions": "CNS depressants.",
         "substitution": "Generic substitution permitted.", "source": "Drugs@FDA"
     },
     {
         "generic": "Lisinopril", "brand": "Zestril", "class": "ACE Inhibitor", 
         "indication": "Hypertension", "off_label": "Migraine prevention", 
         "schedule": "Rx", "moa": "Inhibits angiotensin-converting enzyme", 
-        "contraindications": "History of angioedema, pregnancy", 
-        "sig": "Take 1 tablet by mouth daily.", "storage": "Keep dry and store at room temperature.", 
-        "side_effects": "Dry cough, dizziness, elevated potassium.", "interactions": "NSAIDs, potassium supplements.",
+        "contraindications": "History of angioedema", 
+        "sig": "Take 1 tablet by mouth daily.", "storage": "Keep dry at room temperature.", 
+        "side_effects": "Dry cough, dizziness.", "interactions": "NSAIDs, potassium supplements.",
         "substitution": "Generic substitution permitted.", "source": "DailyMed (NIH)"
     },
     {
         "generic": "Metformin HCl", "brand": "Glucophage", "class": "Biguanide", 
-        "indication": "Type 2 Diabetes", "off_label": "PCOS (Polycystic Ovary Syndrome)", 
+        "indication": "Type 2 Diabetes", "off_label": "PCOS", 
         "schedule": "Rx", "moa": "Decreases hepatic glucose production", 
         "contraindications": "Severe renal impairment", 
         "sig": "Take 1 tablet by mouth twice daily with meals.", "storage": "Store at room temperature.", 
-        "side_effects": "Nausea, stomach upset, diarrhea.", "interactions": "Iodinated contrast, alcohol.",
+        "side_effects": "Nausea, stomach upset.", "interactions": "Iodinated contrast.",
         "substitution": "Generic substitution permitted.", "source": "Drugs@FDA"
     }
 ]
@@ -46,11 +44,9 @@ def generate_patient():
 def generate_events(count=20):
     events = []
     current_time = int(time.time())
-    
     for i in range(count):
         med = random.choice(MEDICATIONS)
         qty = random.choice([30, 60, 90])
-        
         event = {
             "event_id": f"EVT-{current_time}-{i:03d}",
             "medication": med["generic"],
