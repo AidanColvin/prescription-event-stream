@@ -1,171 +1,127 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { createPrescriptionSchema } from "@/lib/schemas/prescription";
-import { z } from "zod";
-import { useRouter } from "next/navigation";
+import React, { useState, useMemo } from "react";
 
-type PrescriptionFormData = z.infer<typeof createPrescriptionSchema>;
+const masterEvents = [
+  { id: "1", patient: "Mary Smith", generic: "Zolpidem Tartrate", brand: "Ambien", schedule: "Schedule IV", indication: "Insomnia", adherence: 95, interactions: "None", contraindications: "None", regimen: "10 mg tablet at bedtime", otherMeds: "Atorvastatin 20mg", dea: "BJ8839201" },
+  { id: "2", patient: "Patricia Johnson", generic: "Lisinopril", brand: "Zestril", schedule: "Non-controlled", indication: "Hypertension", adherence: 65, interactions: "NSAIDs may reduce antihypertensive effect", contraindications: "History of angioedema", regimen: "20 mg tablet daily", otherMeds: "Ibuprofen 400mg PRN", dea: "None" },
+  { id: "3", patient: "James Smith", generic: "Amphetamine Salts", brand: "Adderall", schedule: "Schedule II", indication: "ADHD", adherence: 92, interactions: "Severe interaction with MAOIs", contraindications: "Glaucoma, severe anxiety", regimen: "20 mg capsule daily", otherMeds: "None", dea: "BJ8839201" }
+];
 
-/* Renders the prescriber form interface for creating US compliant prescriptions. */
-export default function PrescriberFormPage() {
-  const router = useRouter();
-  const [serverError, setServerError] = useState<string | null>(null);
+export default function MDView() {
+  const [search, setSearch] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState<typeof masterEvents[0] | null>(null);
 
-  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting, isValid } } = useForm<PrescriptionFormData>({
-    resolver: zodResolver(createPrescriptionSchema),
-    mode: "onChange",
-    defaultValues: {
-      details: {
-        issueDate: new Date().toISOString().split("T")[0],
-        refillsAuthorized: 0,
-        strengthUnit: "mg",
-        dosageForm: "tablet",
-        quantityUnit: "tablets",
-      },
-      prescriber: { designation: "MD", signature: { signedElectronically: true } },
-    },
-  });
-
-  const controlledSchedule = watch("details.controlledSchedule");
-
-  useEffect(() => {
-    if (controlledSchedule === "CII") {
-      setValue("details.refillsAuthorized", 0);
-    }
-  }, [controlledSchedule, setValue]);
-
-  const onSubmit = async (data: PrescriptionFormData) => {
-    setServerError(null);
-    try {
-      const response = await fetch("/api/prescriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) throw new Error("Failed to create prescription.");
-      const result = await response.json();
-      router.push(`/prescriptions/${result.id}`);
-    } catch (err: any) {
-      setServerError(err.message || "An unexpected error occurred.");
-    }
-  };
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return masterEvents.filter(ev => 
+      ev.patient.toLowerCase().includes(q) || 
+      ev.generic.toLowerCase().includes(q) || 
+      ev.brand.toLowerCase().includes(q) || 
+      ev.schedule.toLowerCase().includes(q) || 
+      ev.indication.toLowerCase().includes(q)
+    );
+  }, [search]);
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] p-8 font-sans">
-      <div className="max-w-4xl mx-auto bg-white border border-[#d2d2d7] rounded-[16px] p-8 shadow-sm">
-        <h1 className="text-3xl font-semibold mb-8 tracking-tight">Prescribe Medication</h1>
+    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] p-8" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}>
+      <div className="max-w-4xl mx-auto space-y-8">
+        <header className="text-center space-y-2">
+          <h1 className="text-4xl font-semibold tracking-tight">Clinical Alert Feed</h1>
+        </header>
 
-        {serverError && <div className="mb-6 p-4 bg-[#ffebee] text-[#c0392b] rounded-lg text-sm">{serverError}</div>}
+        <input
+          type="text"
+          placeholder="Spotlight search: patient, medication, schedule, or condition..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border border-[#d2d2d7] rounded-full px-6 py-4 text-lg shadow-sm focus:outline-none focus:border-[#0071e3] transition-all"
+          autoComplete="off"
+        />
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-12">
-          <section>
-            <h2 className="text-xl font-medium border-b border-[#d2d2d7] pb-3 mb-6 sticky top-0 bg-white z-10">Patient Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Full Legal Name</label>
-                <input {...register("patient.fullName")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-                {errors.patient?.fullName && <p className="text-[#c0392b] text-xs mt-2">{errors.patient.fullName.message}</p>}
-              </div>
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Date of Birth</label>
-                <input type="date" {...register("patient.dateOfBirth")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-                {errors.patient?.dateOfBirth && <p className="text-[#c0392b] text-xs mt-2">{errors.patient.dateOfBirth.message}</p>}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Street Address</label>
-                <input {...register("patient.address.street1")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">City</label>
-                <input {...register("patient.address.city")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">State</label>
-                  <input {...register("patient.address.state")} maxLength={2} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm uppercase focus:outline-none focus:border-[#0071e3]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Postal Code</label>
-                  <input {...register("patient.address.postalCode")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Phone Number</label>
-                <input {...register("patient.phone")} placeholder="(555) 000-0000" className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-medium border-b border-[#d2d2d7] pb-3 mb-6 sticky top-0 bg-white z-10">Prescriber Information</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Full Name & Designation</label>
-                <div className="flex gap-3">
-                  <input {...register("prescriber.fullName")} className="flex-1 border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-                  <select {...register("prescriber.designation")} className="border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]">
-                    {["MD", "DO", "NP", "PA", "DDS", "DMD", "DPM", "OD"].map((d) => <option key={d} value={d}>{d}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">DEA Registration Number</label>
-                <input {...register("prescriber.deaNumber")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm uppercase focus:outline-none focus:border-[#0071e3]" />
-                {errors.prescriber?.deaNumber && <p className="text-[#c0392b] text-xs mt-2">{errors.prescriber.deaNumber.message}</p>}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Electronic Signature (Typed Name)</label>
-                <input {...register("prescriber.signature.typedName")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm italic focus:outline-none focus:border-[#0071e3]" />
-              </div>
-            </div>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-medium border-b border-[#d2d2d7] pb-3 mb-6 sticky top-0 bg-white z-10">Medication Details</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Drug Name (Generic / Brand)</label>
-                <input {...register("details.drugName")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Controlled Schedule</label>
-                <select {...register("details.controlledSchedule")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]">
-                  <option value="">Non-controlled</option>
-                  <option value="CII">Schedule II</option>
-                  <option value="CIII">Schedule III</option>
-                  <option value="CIV">Schedule IV</option>
-                  <option value="CV">Schedule V</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Strength</label>
-                  <input type="number" {...register("details.strengthValue", { valueAsNumber: true })} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Refills</label>
-                  <input type="number" disabled={controlledSchedule === "CII"} {...register("details.refillsAuthorized", { valueAsNumber: true })} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3] disabled:opacity-50" />
-                  {errors.details?.refillsAuthorized && <p className="text-[#c0392b] text-xs mt-2">{errors.details.refillsAuthorized.message}</p>}
-                </div>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Directions for Use (Sig)</label>
-                <textarea {...register("details.sig")} rows={3} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
-              </div>
-            </div>
-          </section>
-
-          <div className="flex justify-end pt-6 border-t border-[#d2d2d7]">
-            <button type="submit" disabled={!isValid || isSubmitting} className="bg-[#0071e3] text-white px-8 py-3 rounded-full text-sm font-medium hover:bg-[#0077ed] transition-colors disabled:opacity-50">
-              {isSubmitting ? "Authorizing..." : "Sign & Submit Prescription"}
-            </button>
+        <div className="grid grid-cols-3 gap-6">
+          <div className="bg-white border border-[#d2d2d7] rounded-[16px] p-6 shadow-sm">
+            <div className="text-3xl font-semibold text-[#0071e3]">{filtered.length}</div>
+            <div className="text-xs font-medium text-[#86868b] uppercase tracking-wider mt-1">Patients in View</div>
           </div>
-        </form>
+          <div className="bg-white border border-[#d2d2d7] rounded-[16px] p-6 shadow-sm">
+            <div className="text-3xl font-semibold text-[#c62828]">{filtered.filter(e => e.interactions !== "None").length}</div>
+            <div className="text-xs font-medium text-[#86868b] uppercase tracking-wider mt-1">Interaction Alerts</div>
+          </div>
+          <div className="bg-white border border-[#d2d2d7] rounded-[16px] p-6 shadow-sm">
+            <div className="text-3xl font-semibold text-[#856404]">{filtered.filter(e => e.adherence < 80).length}</div>
+            <div className="text-xs font-medium text-[#86868b] uppercase tracking-wider mt-1">Low Adherence</div>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-[16px] border border-[#d2d2d7]">
+              <p className="text-[#86868b] text-lg">No matching medications, patients, or schedules found.</p>
+            </div>
+          ) : (
+            filtered.map(ev => {
+              const isLowAdherence = ev.adherence < 80;
+              const hasInteraction = ev.interactions !== "None";
+              return (
+                <div 
+                  key={ev.id} 
+                  onClick={() => setSelectedEvent(ev)}
+                  className="bg-white rounded-[16px] p-6 border border-[#d2d2d7] shadow-sm hover:shadow-md transition-all cursor-pointer flex justify-between items-start"
+                >
+                  <div>
+                    <h3 className="text-xl font-semibold text-[#1d1d1f] tracking-tight mb-1">{ev.patient}</h3>
+                    <p className="text-sm text-[#86868b]">{ev.generic} <span className="font-medium text-[#1d1d1f]">/ {ev.brand}</span></p>
+                    {hasInteraction && (
+                      <div className="mt-4 p-3 bg-[#ffebee] border border-[#ffcdd2] rounded-lg inline-block">
+                        <p className="text-[#c62828] text-sm font-semibold">Interaction Warning</p>
+                        <p className="text-[#c62828] text-xs mt-1">{ev.interactions}</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-3xl font-bold tracking-tight ${isLowAdherence ? 'text-[#c62828]' : 'text-[#2e7d32]'}`}>
+                      {ev.adherence}%
+                    </span>
+                    <p className="text-xs font-bold text-[#86868b] uppercase tracking-wider mt-1">Adherence</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
+
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-md transition-opacity" onClick={() => setSelectedEvent(null)}>
+          <div className="bg-white rounded-[24px] p-8 max-w-lg w-full shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelectedEvent(null)} className="absolute top-6 right-6 text-[#86868b] hover:text-[#1d1d1f] text-xl leading-none">&times;</button>
+            <h2 className="text-2xl font-semibold tracking-tight mb-1">{selectedEvent.patient}</h2>
+            <p className="text-[#0071e3] font-medium mb-6">Prescribed Regimen</p>
+            
+            <div className="space-y-5">
+              <div className="p-4 bg-[#f5f5f7] rounded-xl border border-[#d2d2d7]">
+                <h4 className="text-sm font-semibold text-[#1d1d1f]">{selectedEvent.generic} / {selectedEvent.brand}</h4>
+                <p className="text-sm text-[#86868b] mt-1">{selectedEvent.regimen}</p>
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-[#86868b] uppercase tracking-wider mb-1">Other Active Medications</h4>
+                <p className="text-sm font-medium text-[#1d1d1f]">{selectedEvent.otherMeds}</p>
+              </div>
+              {selectedEvent.contraindications !== "None" && (
+                <div>
+                  <h4 className="text-xs font-bold text-[#c62828] uppercase tracking-wider mb-1">Contraindications</h4>
+                  <p className="text-sm text-[#1d1d1f]">{selectedEvent.contraindications}</p>
+                </div>
+              )}
+              <div className="pt-4 border-t border-[#d2d2d7] flex justify-between items-center">
+                <p className="text-xs text-[#86868b]">DEA Authorization</p>
+                <p className="text-xs font-mono font-medium text-[#1d1d1f]">{selectedEvent.dea}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
