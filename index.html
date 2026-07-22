@@ -10,7 +10,7 @@
             --card-bg: #ffffff;
             --text-primary: #1d1d1f;
             --text-secondary: #86868b;
-            --accent: #0066cc;
+            --accent: #0071e3;
             --border: #d2d2d7;
             --badge-red-bg: #ffebee;
             --badge-red-text: #c62828;
@@ -35,11 +35,11 @@
         nav {
             display: flex;
             justify-content: center;
-            gap: 12px;
+            gap: 10px;
             margin-bottom: 30px;
             background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(20px);
-            padding: 10px;
+            padding: 8px;
             border-radius: 99px;
             border: 1px solid rgba(0,0,0,0.04);
             box-shadow: 0 4px 20px rgba(0,0,0,0.02);
@@ -47,7 +47,7 @@
         nav button {
             background: transparent;
             border: none;
-            padding: 8px 18px;
+            padding: 8px 20px;
             font-size: 14px;
             font-weight: 500;
             color: var(--text-secondary);
@@ -82,11 +82,7 @@
             border-radius: 50%;
             animation: pulse 2s infinite;
         }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.4; }
-            100% { opacity: 1; }
-        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
         h1 {
             font-size: 32px;
             font-weight: 600;
@@ -98,11 +94,15 @@
             color: var(--text-secondary);
             margin: 0;
         }
-        .search-bar {
-            width: 100%;
-            max-width: 500px;
+        .controls-row {
+            display: flex;
+            gap: 16px;
+            max-width: 700px;
             margin: 0 auto 30px auto;
-            display: block;
+            align-items: center;
+        }
+        .search-bar {
+            flex: 1;
             padding: 14px 20px;
             font-size: 16px;
             border-radius: 99px;
@@ -114,7 +114,19 @@
         }
         .search-bar:focus {
             border-color: var(--accent);
-            box-shadow: 0 4px 15px rgba(0,102,204,0.1);
+            box-shadow: 0 4px 15px rgba(0,113,227,0.1);
+        }
+        .profile-select {
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 99px;
+            border: 1px solid var(--border);
+            outline: none;
+            background: #ffffff;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: none;
         }
         .stats-grid {
             display: grid;
@@ -130,10 +142,11 @@
             border: 1px solid rgba(0,0,0,0.04);
         }
         .stat-value {
-            font-size: 30px;
+            font-size: 32px;
             font-weight: 600;
             letter-spacing: -0.5px;
             margin-bottom: 4px;
+            transition: color 0.2s;
         }
         .stat-label {
             font-size: 12px;
@@ -171,9 +184,7 @@
             border-bottom: 1px solid var(--border);
             color: var(--text-primary);
         }
-        tr:last-child td {
-            border-bottom: none;
-        }
+        tr:last-child td { border-bottom: none; }
         .badge {
             display: inline-block;
             padding: 4px 10px;
@@ -183,7 +194,6 @@
         }
         .badge-review { background: var(--badge-red-bg); color: var(--badge-red-text); }
         .badge-standard { background: var(--badge-green-bg); color: var(--badge-green-text); }
-        
         .how-it-works {
             background: var(--card-bg);
             border-radius: 16px;
@@ -191,6 +201,7 @@
             box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(0,0,0,0.04);
             display: none;
+            line-height: 1.6;
         }
         .how-it-works.active { display: block; }
         .how-it-works h2 { font-size: 24px; margin-top: 0; }
@@ -205,17 +216,9 @@
             text-decoration: none;
             font-weight: 500;
             margin-top: 20px;
+            transition: opacity 0.2s;
         }
-        .retry-banner {
-            text-align: center;
-            padding: 12px;
-            background: #fff3cd;
-            color: #856404;
-            font-size: 13px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-        }
+        .github-link:hover { opacity: 0.8; }
     </style>
 </head>
 <body>
@@ -233,13 +236,19 @@
             <p class="subtitle" id="view-subtitle">Plain-English medication guidance, refill tracking, and safety compliance.</p>
         </header>
 
-        <div id="retry-banner" class="retry-banner">Connection interrupted. Reconnecting to Vercel serverless stream...</div>
-
-        <input type="text" id="search-input" class="search-bar" placeholder="Spotlight search: medication, brand, patient, schedule, or condition..." oninput="renderData()" autocomplete="off">
+        <div class="controls-row" id="controls-row">
+            <input type="text" id="search-input" class="search-bar" placeholder="Spotlight search: medication, brand, patient, schedule, or condition..." oninput="renderData()" autocomplete="off">
+            <select id="profile-select" class="profile-select" onchange="renderData()">
+                <option value="all">All Family Members</option>
+                <option value="Patricia Johnson">Patricia Johnson</option>
+                <option value="Mary Smith">Mary Smith</option>
+                <option value="James Smith">James Smith</option>
+            </select>
+        </div>
 
         <div class="stats-grid" id="stats-container">
             <div class="stat-card">
-                <div class="stat-value" id="stat-total">--</div>
+                <div class="stat-value" id="stat-total" style="color: var(--accent);">--</div>
                 <div class="stat-label">Active Events</div>
             </div>
             <div class="stat-card">
@@ -261,10 +270,10 @@
                         <th>Medication (Generic / Brand)</th>
                         <th>What It Treats</th>
                         <th>Directions (Sig)</th>
-                        <th>Refill Due</th>
+                        <th>Refill Timing</th>
                     </tr>
                 </thead>
-                <tbody id="tbody-patient"><tr><td colspan="5" style="text-align:center; padding:40px;">Loading profile data...</td></tr></tbody>
+                <tbody id="tbody-patient"><tr><td colspan="5" style="text-align:center; padding:40px;">Loading data stream...</td></tr></tbody>
             </table>
         </div>
 
@@ -293,7 +302,7 @@
                         <th>Prescribed Regimen (Generic / Brand)</th>
                         <th>Adherence</th>
                         <th>Drug Interactions & Warnings</th>
-                        <th>Prescriber</th>
+                        <th>Prescriber & DEA</th>
                     </tr>
                 </thead>
                 <tbody id="tbody-md"></tbody>
@@ -303,7 +312,7 @@
         <!-- How It Works & GitHub -->
         <div id="view-how" class="how-it-works">
             <h2>Architecture & U.S. Compliance Standards</h2>
-            <p>This application simulates and streams real-time prescription refill events using a Python serverless backend deployed on Vercel, paired with an Apple-inspired minimalist frontend.</p>
+            <p>This application simulates and streams real-time prescription refill events using a Python serverless backend deployed on Vercel, paired with an Apple-inspired minimalist frontend designed for zero friction.</p>
             <h3>Authoritative U.S. Data Sources</h3>
             <ul>
                 <li><strong>FDA & Drugs@FDA:</strong> Real-time regulatory approvals, indications, and safety communications.</li>
@@ -321,15 +330,13 @@
         let currentView = 'patient';
 
         async function fetchEvents() {
-            const retryBanner = document.getElementById('retry-banner');
             try {
                 const response = await fetch('/api/events');
                 if (!response.ok) throw new Error('Network response failed');
                 globalData = await response.json();
-                retryBanner.style.display = 'none';
                 renderData();
             } catch (err) {
-                retryBanner.style.display = 'block';
+                console.error("Stream connection error:", err);
             }
         }
 
@@ -342,31 +349,35 @@
             });
             document.getElementById(`nav-${view}`).classList.add('active');
             
-            const searchBar = document.getElementById('search-input');
+            const controlsRow = document.getElementById('controls-row');
             const statsGrid = document.getElementById('stats-container');
             const howView = document.getElementById('view-how');
+            const profileSelect = document.getElementById('profile-select');
 
             if (view === 'how') {
-                searchBar.style.display = 'none';
+                controlsRow.style.display = 'none';
                 statsGrid.style.display = 'none';
                 howView.classList.add('active');
                 document.getElementById('view-title').textContent = 'How It Works';
                 document.getElementById('view-subtitle').textContent = 'System architecture, regulatory sources, and repository access.';
             } else {
-                searchBar.style.display = 'block';
+                controlsRow.style.display = 'flex';
                 statsGrid.style.display = 'grid';
                 howView.classList.remove('active');
                 document.getElementById(`table-${view}`).classList.add('active');
                 
                 if (view === 'patient') {
+                    profileSelect.style.display = 'block';
                     document.getElementById('view-title').textContent = 'Patient & Parent Medication Portal';
-                    document.getElementById('view-subtitle').textContent = 'Plain-English medication guidance, safe storage, and refill countdowns.';
+                    document.getElementById('view-subtitle').textContent = 'Plain-English medication guidance, safe storage, and exact refill countdowns.';
                 } else if (view === 'pharmacist') {
+                    profileSelect.style.display = 'none';
                     document.getElementById('view-title').textContent = 'Pharmacist Compliance Queue';
-                    document.getElementById('view-subtitle').textContent = 'High-volume tracking, DEA schedule verification, and substitution checks.';
+                    document.getElementById('view-subtitle').textContent = 'High-volume tracking, DEA schedule verification, and dispensing compliance.';
                 } else if (view === 'md') {
+                    profileSelect.style.display = 'none';
                     document.getElementById('view-title').textContent = 'Physician Clinical Safety Profile';
-                    document.getElementById('view-subtitle').textContent = 'Patient adherence tracking, drug-drug interactions, and contraindications.';
+                    document.getElementById('view-subtitle').textContent = 'Patient adherence tracking, automated drug interactions, and contraindications.';
                 }
             }
             renderData();
@@ -376,6 +387,9 @@
             if (currentView === 'how') return;
 
             const query = (document.getElementById('search-input').value || '').toLowerCase().trim();
+            const selectedProfile = document.getElementById('profile-select').value;
+
+            // Universal live search filtering logic
             const filtered = globalData.events.filter(ev => {
                 const pat = (ev.patient || '').toLowerCase();
                 const med = (ev.medication || '').toLowerCase();
@@ -383,21 +397,28 @@
                 const sched = (ev.dea_schedule || '').toLowerCase();
                 const ind = (ev.indication || '').toLowerCase();
                 const inter = (ev.interactions || '').toLowerCase();
-                return pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query) || inter.includes(query);
+                
+                const matchesSearch = pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query) || inter.includes(query);
+                const matchesProfile = (currentView !== 'patient' || selectedProfile === 'all' || ev.patient === selectedProfile);
+                
+                return matchesSearch && matchesProfile;
             });
 
-            let filteredTotal = filtered.length;
-            let filteredLarge = filtered.filter(e => e.quantity > 60).length;
-            let filteredQtySum = filtered.reduce((acc, curr) => acc + curr.quantity, 0);
-            let filteredAvg = filteredTotal > 0 ? Math.round(filteredQtySum / filteredTotal) : 0;
+            // Dynamically recalculate macro summary cards
+            const totalActive = filtered.length;
+            const largeRefills = filtered.filter(e => e.quantity > 60).length;
+            const qtySum = filtered.reduce((acc, curr) => acc + curr.quantity, 0);
+            const avgQty = totalActive > 0 ? Math.round(qtySum / totalActive) : 0;
 
-            document.getElementById('stat-total').textContent = filteredTotal;
-            document.getElementById('stat-large').textContent = filteredLarge;
-            document.getElementById('stat-avg').textContent = filteredAvg;
+            document.getElementById('stat-total').textContent = totalActive;
+            document.getElementById('stat-large').textContent = largeRefills;
+            document.getElementById('stat-avg').textContent = avgQty;
+
+            const emptyStateHTML = `<tr><td colspan="5" style="text-align:center; padding:60px 20px; color:var(--text-secondary); font-size:16px;">No matching medications, patients, or schedules found.</td></tr>`;
 
             if (currentView === 'patient') {
                 const tbody = document.getElementById('tbody-patient');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications, patients, or schedules found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : emptyStateHTML;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -405,20 +426,21 @@
                         <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="color:var(--accent); font-size:12px;">Strength: ${ev.strength} (${ev.form})</span></td>
                         <td>${ev.indication}<br><span style="font-size:12px; color:var(--text-secondary);">Off-label: ${ev.off_label}</span></td>
                         <td style="font-weight:500;">${ev.sig}</td>
-                        <td><span style="color:#0066cc; font-weight:600;">Due: ${ev.next_refill_due}</span><br><span style="font-size:12px; color:var(--text-secondary);">${ev.refills_remaining} refills left</span></td>
+                        <td><span style="color:${ev.next_refill_due.includes('1') ? '#c62828' : '#0071e3'}; font-weight:600;">Due in: ${ev.next_refill_due}</span><br><span style="font-size:12px; color:var(--text-secondary);">${ev.refills_remaining} Total Refills Left</span></td>
                     `;
                     tbody.appendChild(tr);
                 });
             } else if (currentView === 'pharmacist') {
                 const tbody = document.getElementById('tbody-pharmacist');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications, patients, or schedules found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : emptyStateHTML;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     const badgeClass = ev.high_volume === 'Review Required' ? 'badge-review' : 'badge-standard';
+                    const schedColor = ev.dea_schedule.includes('II') ? '#c62828' : (ev.dea_schedule.includes('Non') ? '#2e7d32' : '#1d1d1f');
                     tr.innerHTML = `
                         <td><strong>${ev.patient}</strong><br><span style="font-family:monospace; font-size:12px; color:var(--text-secondary);">${ev.event_id}</span></td>
                         <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="font-size:12px; color:var(--text-secondary);">${ev.strength} ${ev.form}</span></td>
-                        <td><span style="font-weight:600; color:${ev.dea_schedule.includes('II') ? '#c62828' : '#1d1d1f'};">${ev.dea_schedule}</span></td>
+                        <td><span style="font-weight:600; color:${schedColor};">${ev.dea_schedule}</span></td>
                         <td>Qty: <strong>${ev.quantity}</strong><br><span style="font-size:12px; color:var(--text-secondary);">Refills: ${ev.refills_remaining}</span></td>
                         <td><span class="badge ${badgeClass}">${ev.high_volume}</span><br><span style="font-size:11px; color:var(--text-secondary);">Source: ${ev.source}</span></td>
                     `;
@@ -426,14 +448,14 @@
                 });
             } else if (currentView === 'md') {
                 const tbody = document.getElementById('tbody-md');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications, patients, or schedules found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : emptyStateHTML;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><strong>${ev.patient}</strong><br><span style="font-size:12px; color:var(--text-secondary);">Phone: ${ev.phone}</span></td>
                         <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="font-size:12px; color:var(--text-secondary);">${ev.strength} ${ev.form} — Sig: ${ev.sig}</span></td>
                         <td><span style="font-weight:600; color: ${parseInt(ev.adherence_score) < 85 ? '#c62828' : '#2e7d32'};">${ev.adherence_score}</span></td>
-                        <td><span style="color:#c62828; font-size:12px;">Interactions: ${ev.interactions}</span><br><span style="font-size:12px; color:var(--text-secondary);">Contra: ${ev.contraindications}</span></td>
+                        <td><span style="color:#c62828; font-size:12px; font-weight:500;">Interactions: ${ev.interactions}</span><br><span style="font-size:12px; color:var(--text-secondary);">Contra: ${ev.contraindications}</span></td>
                         <td>${ev.prescriber}<br><span style="font-size:12px; color:var(--text-secondary);">DEA: ${ev.dea}</span></td>
                     `;
                     tbody.appendChild(tr);
