@@ -1,43 +1,55 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 
-const mockEvents = [
-  { id: "1", patient: "Mary Smith", generic: "Zolpidem Tartrate", brand: "Ambien", schedule: "Schedule IV", indication: "Insomnia", sig: "Take 1 tablet at bedtime.", qty: 30, refills: 2 },
+const initialEvents = [
+  { id: "1", patient: "Mary Smith", generic: "Zolpidem Tartrate", brand: "Ambien", schedule: "CIV", indication: "Insomnia", sig: "Take 1 tablet at bedtime.", qty: 30, refills: 2 },
   { id: "2", patient: "Patricia Johnson", generic: "Lisinopril", brand: "Zestril", schedule: "Non-controlled", indication: "Hypertension", sig: "Take 1 tablet daily.", qty: 90, refills: 3 }
 ];
 
-/** Renders the Patient portal with Spotlight-style live universal search. */
+/** Renders the Patient portal with Spotlight style live universal search via explicit DOM binding. */
 export default function PatientView() {
-  const [search, setSearch] = useState("");
+  const [filtered, setFiltered] = useState(initialEvents);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase();
-    return mockEvents.filter(ev => 
-      ev.patient.toLowerCase().includes(q) || 
-      ev.generic.toLowerCase().includes(q) || 
-      ev.brand.toLowerCase().includes(q) || 
-      ev.schedule.toLowerCase().includes(q) || 
-      ev.indication.toLowerCase().includes(q)
-    );
-  }, [search]);
+  useEffect(() => {
+    const searchInput = document.getElementById("search-input") as HTMLInputElement;
+    
+    const handleInput = () => {
+      const q = searchInput.value.toLowerCase().trim();
+      const newFiltered = initialEvents.filter(ev => 
+        ev.patient.toLowerCase().includes(q) || 
+        ev.generic.toLowerCase().includes(q) || 
+        ev.brand.toLowerCase().includes(q) || 
+        ev.schedule.toLowerCase().includes(q) || 
+        ev.indication.toLowerCase().includes(q)
+      );
+      setFiltered(newFiltered);
+    };
+
+    if (searchInput) {
+      searchInput.addEventListener("input", handleInput);
+    }
+    
+    return () => {
+      if (searchInput) {
+        searchInput.removeEventListener("input", handleInput);
+      }
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] p-8 font-sans">
       <div className="max-w-5xl mx-auto space-y-8">
         <header className="text-center space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#e8f5e9] text-[#2e7d32] rounded-full text-xs font-medium">
-            <span className="w-2 h-2 rounded-full bg-[#34c759] animate-pulse" /> Live Stream
-          </div>
           <h1 className="text-4xl font-semibold tracking-tight">Patient Portal</h1>
         </header>
 
         <input
           type="text"
+          id="search-input"
           placeholder="Spotlight search: medication, brand, patient, schedule, or condition..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
           className="w-full border border-[#d2d2d7] rounded-full px-6 py-4 text-lg shadow-sm focus:outline-none focus:border-[#0071e3] transition-all"
+          autoComplete="off"
         />
 
         <div className="grid grid-cols-3 gap-6">
