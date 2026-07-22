@@ -27,31 +27,86 @@ Every page has live search. Type a drug name, generic or brand, and a
 medication card answers what it is approved to treat, its common
 off-label uses, its drug class, and how it works in the body. Type a
 class like "benzodiazepine" or a mechanism like "dopamine" and the
-matching drugs surface. Press `/` to focus search; click any row for
-full detail.
+matching drugs surface. Search answers for **any** drug: names outside
+the family's data fall through to the live FDA label database via
+RxNorm and openFDA. Press `/` to focus search; click any row for full
+detail.
 
-## How it works
+## System architecture
 
 ```mermaid
 flowchart LR
-    A["Refill queue<br/>16 synthetic events<br/><code>src/ingestion.py</code>"] --> B["Rule engine<br/><code>src/rules/</code>"]
-    B --> R1["R1 pediatric<br/>minimum age"]
-    B --> R2["R2 schedule<br/>refill limits"]
-    B --> R3["R3 DEA<br/>validity"]
-    A --> S["Interaction screen<br/>per patient<br/><code>src/rules/interactions.py</code>"]
-    R1 --> F["One Finding<br/>severity, citation,<br/>three messages"]
-    R2 --> F
-    R3 --> F
-    S --> F
-    F --> P1["Patient<br/>plain English"]
-    F --> P2["Pharmacist<br/>verdict + citation"]
-    F --> P3["MD<br/>panel alert"]
+    subgraph Browser
+        P1["Patient  /"]
+        P2["Pharmacist  /pharmacist"]
+        P3["MD  /md"]
+        JS["assets/app.js<br/>search controller<br/>filter, cards, 450ms<br/>debounced FDA fallback"]
+    end
+
+    subgraph Vercel
+        EC["Edge cache<br/>s-maxage 86400"]
+        subgraph EV["api/events.py"]
+            ING["src/ingestion.py<br/>16 deterministic events"] --> RULES["src/rules/<br/>R1 pediatric · R2 refills · R3 DEA"]
+            ING --> SCREEN["interaction screen<br/>per patient, never across"]
+            RULES --> SUM["summary computed<br/>read / stopped / cleared"]
+            SCREEN --> SUM
+        end
+        subgraph DR["api/drug.py"]
+            VAL["validate term"] --> LBL["openFDA label search"]
+            LBL -->|miss| NORM["RxNorm normalize,<br/>retry with ingredient"]
+            LBL --> SHAPE["trim to sentences,<br/>strip headings"]
+            NORM --> SHAPE
+        end
+    end
+
+    subgraph Federal["Live sources: NIH / FDA"]
+        FDA["openFDA<br/>api.fda.gov"]
+        RX["RxNorm<br/>rxnav.nlm.nih.gov"]
+        DM["DailyMed<br/>full labels"]
+        CFR["eCFR Title 21<br/>rule citations"]
+    end
+
+    P1 & P2 & P3 --> JS
+    JS -->|"GET /api/events"| EC --> EV
+    JS -->|"GET /api/drug?name="| DR
+    LBL --> FDA
+    NORM --> RX
+    SHAPE -.->|links| DM
+    SUM -.->|citations| CFR
 ```
 
-The server evaluates the queue in `src/transform.py` and serves one JSON
-payload from `api/events.py`, a Python serverless function on Vercel.
-The three surfaces are static pages with no framework and no build step;
-each renders the slice of the payload its reader needs.
+The events pipeline is deterministic and self-contained: same queue,
+same verdicts, every request. The drug lookup reaches the live federal
+databases, shapes the label server-side, and caches at the edge for a
+day so repeat queries never re-hit the upstream APIs.
+
+### A search for a drug nobody here takes
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant P as Page (app.js)
+    participant E as Vercel edge
+    participant D as api/drug.py
+    participant R as RxNorm
+    participant F as openFDA
+
+    U->>P: types "xanax"
+    P->>P: no match in family data
+    Note over P: 450 ms debounce, per-query cache
+    P->>E: GET /api/drug?name=xanax
+    E->>D: cache miss
+    D->>F: label search, generic OR brand
+    alt label miss
+        D->>R: approximateTerm to ingredient
+        D->>F: retry with normalized name
+    end
+    F-->>D: FDA label JSON
+    D-->>E: shaped card, cached 24h
+    E-->>P: class, mechanism, uses, links
+    P-->>U: "From the FDA label database" card
+```
 
 ## Rule engine
 
@@ -124,6 +179,11 @@ Every medication answers the questions a patient actually asks:
 All four fields render on the medication card and in row details, and
 all four are searchable.
 
+Two data tiers, stated honestly: the family's 16 medications are
+hand-curated for plain-English readability; every other drug comes from
+the live FDA label via `/api/drug`, trimmed to sentences but never
+rewritten, with a link to the full label on DailyMed.
+
 ## Design decisions
 
 - **Nothing on any screen is hardcoded.** The clearance line, the stat
@@ -154,16 +214,20 @@ python3 -m unittest discover -s tests    # 33 tests
 CI runs the full suite on every push. Coverage spans the ingestion and
 transform pipeline, all three rules, the clinical math (age, sig
 parsing, days supply), the DEA checksum, the interaction screen
-including its cross-patient safeguard, and the computed queue summary.
+including its cross-patient safeguard, the computed queue summary, and
+the label shaping for live lookups, which is tested against canned FDA
+labels so the suite never needs a network.
 
 ## Project structure
 
 ```
-api/events.py            Vercel serverless function serving the queue
+api/events.py            serverless function serving the evaluated queue
+api/drug.py              serverless function for live FDA label lookup
 src/ingestion.py         deterministic synthetic roster, 16 events
 src/transform.py         evaluates events, attaches findings and summary
 src/rules/               one file per rule + the interaction screen
 src/constants/           age floors, schedule limits, interaction pairs
+src/drug_lookup.py       RxNorm + openFDA client and label shaping
 assets/                  shared stylesheet and search/render helpers
 index.html, pharmacist/, md/, how-it-works/    the four surfaces
 tests/                   unittest suite, run by CI on every push
