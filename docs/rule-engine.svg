@@ -38,8 +38,8 @@
           <!-- Finding -->
           <rect x="544" y="164" width="150" height="132" rx="16" fill="#ffffff" stroke="#d2d2d7"/>
           <text x="619" y="196" font-size="15" font-weight="600" fill="#1d1d1f" text-anchor="middle">One Finding</text>
-          <text x="619" y="220" font-size="11.5" fill="#86868b" text-anchor="middle">headline &middot; severity</text>
-          <text x="619" y="238" font-size="11.5" fill="#86868b" text-anchor="middle">citation &middot; action</text>
+          <text x="619" y="220" font-size="11.5" fill="#86868b" text-anchor="middle">headline &#183; severity</text>
+          <text x="619" y="238" font-size="11.5" fill="#86868b" text-anchor="middle">citation &#183; action</text>
           <text x="619" y="256" font-size="11.5" fill="#86868b" text-anchor="middle">three messages,</text>
           <text x="619" y="272" font-size="11.5" fill="#86868b" text-anchor="middle">one per audience</text>
 
@@ -50,19 +50,19 @@
           <!-- Surfaces -->
           <rect x="746" y="40" width="154" height="96" rx="14" fill="#ffffff" stroke="#d2d2d7"/>
           <text x="762" y="66" font-size="13" font-weight="600" fill="#1d1d1f">Patient</text>
-          <text x="762" y="86" font-size="10.5" fill="#86868b">&ldquo;Ambien is not approved</text>
+          <text x="762" y="86" font-size="10.5" fill="#86868b">&#8220;Ambien is not approved</text>
           <text x="762" y="100" font-size="10.5" fill="#86868b">for children. The pharmacy</text>
-          <text x="762" y="114" font-size="10.5" fill="#86868b">paused this prescription.&rdquo;</text>
+          <text x="762" y="114" font-size="10.5" fill="#86868b">paused this prescription.&#8221;</text>
 
           <rect x="746" y="182" width="154" height="96" rx="14" fill="#ffffff" stroke="#c62828"/>
           <text x="762" y="208" font-size="13" font-weight="600" fill="#c62828">Pharmacist</text>
-          <text x="762" y="230" font-size="12" font-weight="600" fill="#1d1d1f">&ldquo;Do not fill.&rdquo;</text>
+          <text x="762" y="230" font-size="12" font-weight="600" fill="#1d1d1f">&#8220;Do not fill.&#8221;</text>
           <text x="762" y="248" font-size="10.5" fill="#86868b">Numbered findings,</text>
           <text x="762" y="262" font-size="10.5" fill="#86868b">each with its citation.</text>
 
           <rect x="746" y="324" width="154" height="96" rx="14" fill="#ffffff" stroke="#d2d2d7"/>
           <text x="762" y="350" font-size="13" font-weight="600" fill="#1d1d1f">MD</text>
-          <text x="762" y="370" font-size="10.5" fill="#86868b">&ldquo;James Smith, age 11,</text>
+          <text x="762" y="370" font-size="10.5" fill="#86868b">&#8220;James Smith, age 11,</text>
           <text x="762" y="384" font-size="10.5" fill="#86868b">was prescribed Ambien.</text>
-          <text x="762" y="398" font-size="10.5" fill="#86868b">Minimum age is 18.&rdquo;</text>
+          <text x="762" y="398" font-size="10.5" fill="#86868b">Minimum age is 18.&#8221;</text>
         </svg>

@@ -205,6 +205,11 @@ h1 {
   margin-bottom: 16px;
 }
 .medinfo-name { font-size: 19px; font-weight: 600; letter-spacing: -0.2px; }
+.medinfo-mechanism {
+  font-size: 14.5px; color: #424245; line-height: 1.55;
+  margin: 0 0 16px;
+}
+.medinfo-mechanism strong { color: var(--text); }
 .medinfo-source {
   margin-top: 16px; padding-top: 12px;
   border-top: 1px solid var(--hairline);

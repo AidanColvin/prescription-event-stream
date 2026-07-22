@@ -177,6 +177,15 @@ class TestInteractionScreen(unittest.TestCase):
         for event in get_refill_events():
             self.assertTrue(event.get("approved_uses"))
             self.assertTrue(event.get("off_label"))
+            self.assertTrue(event.get("drug_class"))
+            self.assertTrue(event.get("mechanism"))
+
+    def test_class_and_mechanism_are_accurate_for_key_drugs(self):
+        by_med = {e["medication"]: e for e in get_refill_events()}
+        self.assertEqual(by_med["Temazepam"]["drug_class"], "Benzodiazepine")
+        self.assertIn("dopamine", by_med["Amphetamine Salts"]["mechanism"])
+        self.assertIn("serotonin", by_med["Sertraline"]["mechanism"])
+        self.assertIn("GABA", by_med["Zolpidem Tartrate"]["mechanism"])
 
 
 class TestQueue(unittest.TestCase):

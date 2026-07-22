@@ -21,7 +21,7 @@ function matchesQuery(ev, query) {
   return [
     ev.patient, ev.medication, ev.brand, ev.dea_schedule, ev.indication,
     ev.prescriber, ev.interactions, ev.event_id, ev.sig,
-    ev.approved_uses, ev.off_label,
+    ev.approved_uses, ev.off_label, ev.drug_class, ev.mechanism,
   ].some((field) => (field || "").toLowerCase().includes(query));
 }
 
@@ -33,7 +33,9 @@ function matchingMedications(events, query) {
   for (const ev of events) {
     const generic = (ev.medication || "").toLowerCase();
     const brand = (ev.brand || "").toLowerCase();
-    if ((generic.includes(query) || brand.includes(query)) && !seen.has(ev.medication)) {
+    const drugClass = (ev.drug_class || "").toLowerCase();
+    if ((generic.includes(query) || brand.includes(query) || drugClass.includes(query))
+        && !seen.has(ev.medication)) {
       seen.set(ev.medication, ev);
     }
   }
@@ -51,8 +53,10 @@ function medInfoCard(ev, query) {
         <span class="medinfo-name">${highlight(ev.medication, query)}</span>
         <span class="med-brand">${highlight(ev.brand, query)} &middot; ${esc(ev.strength)} ${esc(ev.form)}</span>
         <span class="row-spacer"></span>
+        <span class="chip chip-plain">${highlight(ev.drug_class, query)}</span>
         <span class="chip chip-plain">${esc(ev.dea_schedule)}</span>
       </div>
+      <p class="medinfo-mechanism"><strong>How it works.</strong> ${highlight(ev.mechanism, query)}</p>
       <div class="detail-grid">
         ${field("Approved to treat", ev.approved_uses)}
         ${field("Common off-label uses", ev.off_label)}

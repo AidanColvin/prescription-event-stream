@@ -99,6 +99,8 @@
           ${interactionNotes}
           <div class="row-detail">
             <div class="detail-grid">
+              <div><div class="detail-label">Drug class</div><div class="detail-value">${highlight(ev.drug_class, query)}</div></div>
+              <div><div class="detail-label">How it works</div><div class="detail-value">${highlight(ev.mechanism, query)}</div></div>
               <div><div class="detail-label">Approved to treat</div><div class="detail-value">${highlight(ev.approved_uses, query)}</div></div>
               <div><div class="detail-label">Common off-label uses</div><div class="detail-value">${highlight(ev.off_label, query)}</div></div>
               <div><div class="detail-label">Strength</div><div class="detail-value">${esc(ev.strength)} ${esc(ev.form)}</div></div>
