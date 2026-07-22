@@ -9,6 +9,7 @@ from src.rules.clinical_math import (
     doses_per_day_from_sig,
     total_days_authorized,
 )
+from src.rules.interactions import screen_interactions
 from src.rules.r1_pediatric import check_pediatric_contraindication
 from src.rules.r2_refill_limit import check_schedule_refill_limit
 from src.rules.r3_dea_validity import check_dea_validity, is_valid_dea_number
@@ -139,6 +140,43 @@ class TestClinicalMath(unittest.TestCase):
     def test_counts_the_first_fill_plus_refills(self):
         self.assertEqual(
             total_days_authorized(90, "Take 1 tablet at bedtime.", 4), 450)
+
+
+class TestInteractionScreen(unittest.TestCase):
+
+    def test_catches_serotonin_syndrome_pair_in_one_patient(self):
+        findings = screen_interactions(get_refill_events())
+        pairs = {(f["patient"], f["severity"],
+                  frozenset((f["drug_a"], f["drug_b"]))) for f in findings}
+        self.assertIn(
+            ("Mary Smith", "major", frozenset({"Sertraline", "Tramadol HCl"})),
+            pairs)
+
+    def test_never_pairs_drugs_across_patients(self):
+        # Warfarin (Patricia) plus ibuprofen (Mary) is a known major
+        # interaction, but nobody takes both, so it must not fire.
+        findings = screen_interactions(get_refill_events())
+        for f in findings:
+            self.assertNotEqual(
+                frozenset((f["drug_a"], f["drug_b"])),
+                frozenset({"Warfarin Sodium", "Ibuprofen"}))
+
+    def test_sorts_major_before_moderate(self):
+        severities = [f["severity"] for f in screen_interactions(get_refill_events())]
+        self.assertEqual(severities, sorted(severities, key=["major", "moderate"].index))
+
+    def test_attaches_alerts_to_both_events(self):
+        payload = process_events(get_refill_events())
+        by_med = {e["medication"]: e for e in payload["events"]}
+        self.assertTrue(any(a["with_medication"] == "Tramadol HCl"
+                            for a in by_med["Sertraline"]["interaction_alerts"]))
+        self.assertTrue(any(a["with_medication"] == "Sertraline"
+                            for a in by_med["Tramadol HCl"]["interaction_alerts"]))
+
+    def test_every_event_carries_use_information(self):
+        for event in get_refill_events():
+            self.assertTrue(event.get("approved_uses"))
+            self.assertTrue(event.get("off_label"))
 
 
 class TestQueue(unittest.TestCase):

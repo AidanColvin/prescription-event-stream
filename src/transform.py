@@ -2,6 +2,7 @@
 the API payload the four surfaces render."""
 
 from src.rules import evaluate_event, summarize_queue
+from src.rules.interactions import attach_interaction_alerts, screen_interactions
 from src.rules.r3_dea_validity import is_valid_dea_number
 from src.constants.controlled_schedules import normalize_schedule
 
@@ -42,6 +43,8 @@ def process_events(events):
     the older shape, alongside the flat fields.
     """
     evaluated = [evaluate_event(e) for e in transform_batch(events)]
+    interaction_screen = screen_interactions(evaluated)
+    attach_interaction_alerts(evaluated, interaction_screen)
     for event in evaluated:
         event["dea_status"] = dea_status(event)
         event["patient_data"] = {
@@ -57,6 +60,7 @@ def process_events(events):
 
     return {
         "events": evaluated,
+        "interaction_screen": interaction_screen,
         "summary": summarize_queue(evaluated),
         "stats": {
             "total": total,
