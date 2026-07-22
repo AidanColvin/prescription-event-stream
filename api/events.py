@@ -14,15 +14,13 @@ class handler(BaseHTTPRequestHandler):
             parsed_path = urlparse(self.path)
             query_params = parse_qs(parsed_path.query)
             
-            count = 15
+            raw_events = get_refill_events()
             if 'count' in query_params:
                 try:
-                    count = int(query_params['count'][0])
-                    count = max(1, min(count, 100))
+                    count = max(1, min(int(query_params['count'][0]), 100))
+                    raw_events = raw_events[:count]
                 except ValueError:
-                    count = 15
-
-            raw_events = get_refill_events()[:count]
+                    pass
             result = process_events(raw_events)
 
             self.send_response(200)
