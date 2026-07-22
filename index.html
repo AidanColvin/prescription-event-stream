@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Patient Portal</title>
+  <style>
+    :root { --bg: #f5f5f7; --card: #ffffff; --text-main: #1d1d1f; --text-muted: #86868b; --border: #e5e5ea; --accent: #0071e3; --live: #34c759; --alert: #dc2626; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; margin: 0; background: var(--bg); color: var(--text-main); }
+    .nav { display: flex; justify-content: center; gap: 20px; padding: 20px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
+    .nav a.active { background: var(--text-main); color: #fff; }
+    .container { max-width: 800px; margin: 0 auto; padding: 40px 20px; }
+    .banner { display: none; background: #fee2e2; color: var(--alert); padding: 12px; border-radius: 12px; text-align: center; margin-bottom: 24px; font-weight: 500; }
+    header { text-align: center; margin-bottom: 30px; }
+    h1 { font-size: 32px; font-weight: 700; margin: 0 0 8px; }
+    .status { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 16px; }
+    .dot { width: 8px; height: 8px; background-color: var(--live); border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(52,199,89,0.4); } 70% { box-shadow: 0 0 0 10px rgba(52,199,89,0); } 100% { box-shadow: 0 0 0 0 rgba(52,199,89,0); } }
+    .controls { display: flex; gap: 12px; max-width: 600px; margin: 0 auto 30px; }
+    select, input[type="search"] { flex: 1; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 15px; outline: none; background: var(--card); }
+    .card { background: var(--card); padding: 24px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); margin-bottom: 16px; cursor: pointer; transition: transform 0.2s; }
+    .card:hover { transform: scale(1.01); }
+    .med-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .med-name { font-size: 22px; font-weight: 600; }
+    .med-brand { font-size: 14px; color: var(--text-muted); }
+    .refill-badge { padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; background: #e2fbd7; color: #059669; }
+    .refill-badge.urgent { background: #fee2e2; color: var(--alert); }
+    .details { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+    .details.active { display: block; }
+    .info-group { margin-bottom: 16px; }
+    .info-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 4px; }
+    .info-value { font-size: 15px; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <nav class="nav"><a href="/" class="active">Patient</a><a href="/pharmacist">Pharmacist</a><a href="/md">MD</a><a href="/how-it-works">How It Works</a></nav>
+  <div class="container">
+    <div id="banner" class="banner">Connection lost. Reconnecting...</div>
+    <header>
+      <div class="status"><div class="dot"></div> Live Update</div>
+      <h1>Family Medications</h1>
+      <p style="color: var(--text-muted);">Plain-English details and refill timelines.</p>
+    </header>
+    <div class="controls">
+      <select id="profileSelect" onchange="render()"><option value="all">All Family Members</option></select>
+      <input type="search" id="search" placeholder="Search medications..." oninput="render()" autocomplete="off" />
+    </div>
+    <div id="list"></div>
+  </div>
+  <script>
+    let events = [];
+    let expanded = null;
+    let profilesLoaded = false;
+    async function load() {
+      try {
+        if (expanded) return;
+        const res = await fetch(`/api/events?count=20&t=${Date.now()}`);
+        events = (await res.json()).events;
+        document.getElementById('banner').style.display = 'none';
+        if (!profilesLoaded) {
+          const names = [...new Set(events.map(e => e.patient_name))];
+          names.forEach(n => document.getElementById('profileSelect').innerHTML += `<option value="${n}">${n}</option>`);
+          profilesLoaded = true;
+        }
+        render();
+      } catch (e) { document.getElementById('banner').style.display = 'block'; }
+    }
+    function toggle(id) { expanded = expanded === id ? null : id; render(); }
+    function render() {
+      const profile = document.getElementById('profileSelect').value;
+      const term = document.getElementById('search').value.toLowerCase();
+      let filtered = events.filter(e => (profile === 'all' || e.patient_name === profile) && (e.medication.toLowerCase().includes(term) || e.brand_name.toLowerCase().includes(term)));
+      
+      document.getElementById('list').innerHTML = filtered.map(e => {
+        const r = e.refill_data;
+        const urgent = r.days_until_due <= 5;
+        return `
+        <div class="card" onclick="toggle('${e.event_id}')">
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Prescribed to: ${e.patient_name}</div>
+          <div class="med-header">
+            <div><div class="med-name">${e.medication}</div><div class="med-brand">${e.brand_name} (${e.drug_class})</div></div>
+            <div class="refill-badge ${urgent ? 'urgent' : ''}">${r.days_until_due <= 0 ? 'Refill Now' : `Refill in ${r.days_until_due} days`}</div>
+          </div>
+          <div class="info-group"><div class="info-label">Directions</div><div class="info-value" style="color: var(--accent); font-weight: 500;">${e.sig}</div></div>
+          <div class="details ${expanded === e.event_id ? 'active' : ''}">
+            <div class="info-group"><div class="info-label">What it Treats</div><div class="info-value">${e.indication}</div></div>
+            <div class="info-group"><div class="info-label">Refill Status</div><div class="info-value">${r.refills_remaining} of ${r.total_refills} remaining.</div></div>
+            <div class="info-group"><div class="info-label">Safe Storage</div><div class="info-value">${e.storage}</div></div>
+            <div class="info-group"><div class="info-label">Side Effects</div><div class="info-value">${e.side_effects}</div></div>
+          </div>
+        </div>
+      `}).join('');
+    }
+    load(); setInterval(load, 5000);
+  </script>
+</body>
+</html>

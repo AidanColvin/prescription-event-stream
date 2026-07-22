@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>How It Works</title>
+  <style>
+    :root { --bg: #f5f5f7; --card: #ffffff; --text-main: #1d1d1f; --text-muted: #86868b; --border: #e5e5ea; --accent: #0071e3; }
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; margin: 0; background: var(--bg); color: var(--text-main); line-height: 1.6; }
+    .nav { display: flex; justify-content: center; gap: 20px; padding: 20px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+    .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
+    .nav a.active { background: var(--text-main); color: #fff; }
+    .container { max-width: 680px; margin: 0 auto; padding: 60px 20px; }
+    h1 { font-size: 32px; font-weight: 700; margin-bottom: 24px; text-align: center; }
+    .content-box { background: var(--card); padding: 40px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+    h2 { font-size: 20px; margin-top: 32px; margin-bottom: 12px; }
+    p { color: var(--text-muted); margin-bottom: 16px; }
+    ul { color: var(--text-muted); margin-bottom: 16px; padding-left: 20px; }
+    li { margin-bottom: 8px; }
+    .repo-link { display: inline-block; margin-top: 20px; background: var(--text-main); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <nav class="nav"><a href="/">Patient</a><a href="/pharmacist">Pharmacist</a><a href="/md">MD</a><a href="/how-it-works" class="active">How It Works</a></nav>
+  <div class="container">
+    <h1>System Architecture</h1>
+    <div class="content-box">
+      <p>This system maps live prescription events to strict U.S. regulatory guidelines. It is built for absolute speed and deep simplicity.</p>
+      <h2>Data Pipeline</h2>
+      <p>Events stream through a custom Python backend deployed via Vercel Serverless Functions. The system polls for fresh data every 5 seconds. It automatically flags irregular prescription volumes and safety limits.</p>
+      <h2>Regulatory Sources</h2>
+      <p>All clinical data points map directly to established U.S. medical authorities. We pull verification from:</p>
+      <ul>
+        <li>The U.S. Food and Drug Administration (FDA) databases.</li>
+        <li>Drugs@FDA for active ingredients and indications.</li>
+        <li>The National Institutes of Health (NIH) DailyMed registry.</li>
+        <li>Clinical compendia including AHFS Drug Information and the PDR.</li>
+      </ul>
+      <h2>Interaction Engine</h2>
+      <p>The backend actively scans patient medication profiles for drug-drug interactions, alerting providers immediately if dangerous combinations (e.g., multiple CNS depressants) are detected.</p>
+      <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" class="repo-link">View Repository on GitHub</a>
+    </div>
+  </div>
+</body>
+</html>
