@@ -1,122 +1,85 @@
 "use client";
+import React, { useState, useMemo } from "react";
+import { Navigation } from "../nav";
 
-import React, { useState } from "react";
-
-/* Takes patient age and drug generic, returns warning if pediatric contraindication exists. */
-const checkPediatric = (age: number, generic: string) => 
-  (age < 18 && generic.includes("Zolpidem")) 
-    ? `James Smith is ${age} years old. Ambien is not approved for children.` 
-    : null;
-
-/* Takes schedule, quantity, and refills, returns warning if limits are exceeded. */
-const checkScheduleLimit = (schedule: string, qty: number, refills: number) => {
-  if (schedule === "Schedule IV") {
-    const totalDays = qty * (refills + 1);
-    if (totalDays > 180) {
-      return `Also: ${qty} tablets with ${refills} refills is ${totalDays} days. Schedule IV allows 5 fills in 6 months.`;
-    }
-  }
-  return null;
-};
-
-/* Takes schedule and DEA number, returns warning if validity fails. */
-const checkDea = (schedule: string, dea: string) => {
-  const isControlled = schedule.includes("Schedule");
-  if (isControlled && (!dea || dea === "None")) {
-    return "Prescriber wrote a controlled substance without a valid DEA registration number on file.";
-  }
-  return null;
-};
-
-const queue = [
-  {
-    id: "1", patient: "James Smith", age: 11, generic: "Zolpidem Tartrate", brand: "Ambien", schedule: "Schedule IV", qty: 90, refills: 4, prescriber: "Dr. Sarah Jenkins", phone: "919-555-4811", dea: "BJ8839201",
-    citations: [
-      "R1 (Age Contraindication): Zolpidem Tartrate safety and efficacy in pediatric patients have not been established. DailyMed SPL 8.4.",
-      "R2 (Schedule Limit): Schedule IV prescriptions may not be filled or refilled more than 6 months after the date of issue or be refilled more than 5 times. 21 CFR 1306.22."
-    ]
-  },
-  {
-    id: "2", patient: "Mary Smith", age: 51, generic: "Amphetamine Salts", brand: "Adderall", schedule: "Schedule II", qty: 30, refills: 0, prescriber: "Dr. Robert Chen, DO", phone: "919-832-0011", dea: "None",
-    citations: [
-      "R3 (DEA Validity): A prescription for a controlled substance may only be issued by a physician who is registered with the DEA. 21 CFR 1306.03."
-    ]
-  }
+const masterQueue = [
+  { id: "1", patient: "James Smith", generic: "Zolpidem Tartrate", brand: "Ambien", schedule: "Schedule IV", qty: 90, refills: 4, prescriber: "Dr. Jenkins", dea: "BJ8839201", indication: "Insomnia", warnings: ["Pediatric Contraindication: Not approved for children."] },
+  { id: "2", patient: "Mary Smith", generic: "Amphetamine Salts", brand: "Adderall", schedule: "Schedule II", qty: 30, refills: 0, prescriber: "Dr. Chen", dea: "None", indication: "ADHD", warnings: ["Invalid DEA: Prescriber DEA required for controlled substances."] },
+  { id: "3", patient: "Patricia Johnson", generic: "Lisinopril", brand: "Zestril", schedule: "Non-controlled", qty: 30, refills: 3, prescriber: "Dr. Jenkins", dea: "BJ8839201", indication: "Hypertension", warnings: [] }
 ];
 
 export default function PharmacistView() {
-  const totalProcessed = 214;
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<any>(null);
 
-  const flagged = queue.map(rx => ({
-    ...rx,
-    warnings: [
-      checkPediatric(rx.age, rx.generic),
-      checkScheduleLimit(rx.schedule, rx.qty, rx.refills),
-      checkDea(rx.schedule, rx.dea)
-    ].filter(Boolean)
-  })).filter(rx => rx.warnings.length > 0);
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return masterQueue.filter(ev => 
+      ev.patient.toLowerCase().includes(q) || ev.generic.toLowerCase().includes(q) || 
+      ev.brand.toLowerCase().includes(q) || ev.schedule.toLowerCase().includes(q)
+    );
+  }, [search]);
 
-  const fineCount = totalProcessed - flagged.length;
-  const currentAlert = flagged[currentIndex];
-  const remaining = flagged.length - 1 - currentIndex;
+  const totalFlagged = filtered.filter(e => e.warnings.length > 0).length;
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] p-8" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif' }}>
-      <div className="max-w-xl mx-auto mt-12">
-        <h1 className="text-3xl font-semibold tracking-tight text-center mb-2">Second Look</h1>
-        <p className="text-center text-[#86868b] mb-12">
-          <span className="font-medium text-[#1d1d1f]">{totalProcessed}</span> prescriptions read this morning.<br/>
-          <span className="font-medium text-[#1d1d1f]">{fineCount}</span> are fine.
-        </p>
+    <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] p-4 sm:p-8" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
+      <div className="max-w-3xl mx-auto space-y-6">
+        <Navigation active="pharmacist" />
+        <h1 className="text-4xl font-semibold tracking-tight text-center mb-8">Second Look Triage</h1>
+        
+        <input 
+          type="text" 
+          placeholder="Spotlight search: patient, medication, or schedule..." 
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full border border-[#d2d2d7] rounded-[16px] px-6 py-4 text-lg shadow-sm focus:outline-none focus:border-[#0071e3] transition-all" 
+          autoComplete="off" 
+        />
 
-        {currentAlert ? (
-          <div className="bg-white border-2 border-[#1d1d1f] rounded-[16px] p-8 shadow-sm relative">
-            <h2 className="text-2xl font-bold text-[#1d1d1f] mb-6">Do not fill.</h2>
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 mb-8">
+          <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-[#d2d2d7] shadow-sm"><div className="text-2xl sm:text-3xl font-semibold">{filtered.length}</div><div className="text-[10px] sm:text-xs font-bold text-[#86868b] uppercase tracking-wider mt-1">Total Queue</div></div>
+          <div className="bg-white rounded-[16px] p-4 sm:p-6 border border-[#c62828] shadow-sm"><div className="text-2xl sm:text-3xl font-semibold text-[#c62828]">{totalFlagged}</div><div className="text-[10px] sm:text-xs font-bold text-[#86868b] uppercase tracking-wider mt-1">Intervention Required</div></div>
+        </div>
 
-            <div className="space-y-4 text-lg text-[#1d1d1f] mb-8 font-medium">
-              {currentAlert.warnings.map((w, i) => (
-                <p key={i}>{w}</p>
-              ))}
-              <p className="pt-2">
-                {currentAlert.prescriber} wrote it.<br/>
-                {currentAlert.phone}
-              </p>
-            </div>
-
-            <button className="w-full bg-[#1d1d1f] text-white rounded-full py-4 font-semibold text-lg hover:bg-[#333] transition-colors mb-6">
-              Call the prescriber
-            </button>
-
-            <details className="group cursor-pointer">
-              <summary className="text-[#86868b] font-medium list-none flex items-center gap-2 outline-none">
-                Why we stopped this <span className="group-open:rotate-90 transition-transform text-xs">▶</span>
-              </summary>
-              <div className="mt-4 p-4 bg-[#f5f5f7] rounded-xl text-sm text-[#48484a] space-y-3">
-                {currentAlert.citations.map((c, i) => (
-                  <p key={i}>{c}</p>
-                ))}
+        <div className="space-y-4">
+          {filtered.length === 0 ? (
+            <div className="text-center py-16 bg-white rounded-[16px] border border-[#d2d2d7]"><p className="text-[#86868b] text-lg font-medium">No matching records found.</p></div>
+          ) : (
+            filtered.map(ev => (
+              <div key={ev.id} onClick={() => setSelected(ev)} className={`bg-white rounded-[16px] p-5 sm:p-6 border shadow-sm hover:shadow-md cursor-pointer flex flex-col sm:flex-row justify-between sm:items-center gap-4 transition-all ${ev.warnings.length > 0 ? 'border-[#c62828]' : 'border-[#d2d2d7]'}`}>
+                <div>
+                  <p className="text-xs font-bold text-[#86868b] uppercase tracking-wider mb-1">{ev.patient}</p>
+                  <h3 className="text-xl font-bold">{ev.generic} <span className="font-normal text-[#86868b]">/ {ev.brand}</span></h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider ${ev.schedule.includes('II') ? 'bg-[#ffebee] text-[#c62828]' : 'bg-[#f1f1f2] text-[#48484a]'}`}>{ev.schedule}</span>
+                  {ev.warnings.length > 0 && <span className="px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider bg-[#c62828] text-white">Review Required</span>}
+                </div>
               </div>
-            </details>
-          </div>
-        ) : (
-          <div className="text-center text-[#86868b] mt-24">
-            <p className="text-xl font-medium">Queue Clear</p>
-            <p>All flagged prescriptions have been reviewed.</p>
-          </div>
-        )}
-
-        {remaining > 0 && (
-          <div className="text-center mt-8">
-            <button 
-              onClick={() => setCurrentIndex(prev => prev + 1)}
-              className="text-[#86868b] font-medium hover:text-[#1d1d1f] transition-colors flex items-center gap-2 mx-auto"
-            >
-              {remaining} more need a look <span>▾</span>
-            </button>
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-md transition-opacity" onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-[24px] p-8 max-w-md w-full shadow-2xl relative mb-safe" onClick={e => e.stopPropagation()}>
+            <button onClick={() => setSelected(null)} className="absolute top-6 right-6 text-[#86868b] hover:text-[#1d1d1f] text-xl">&times;</button>
+            <h2 className="text-2xl font-bold tracking-tight mb-6">{selected.warnings.length > 0 ? 'Do Not Fill.' : 'Clear to Dispense.'}</h2>
+            {selected.warnings.length > 0 ? (
+              <div className="space-y-3 mb-6">
+                {selected.warnings.map((w: string, i: number) => <p key={i} className="text-sm font-medium text-[#c62828] leading-relaxed">{w}</p>)}
+              </div>
+            ) : (
+              <p className="text-sm font-medium text-[#2e7d32] mb-6">No automated safety flags detected.</p>
+            )}
+            <div className="pt-4 border-t border-[#d2d2d7]">
+              <p className="text-xs font-medium text-[#86868b]">Prescriber: {selected.prescriber} <br/> DEA: <span className="font-mono">{selected.dea}</span></p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
