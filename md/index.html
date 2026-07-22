@@ -42,6 +42,7 @@
   <script src="/assets/app.js"></script>
   <script>
     let events = [];
+    let interactionScreen = [];
     let query = "";
     const openRows = new Set();
 
@@ -82,6 +83,33 @@
         </div>`;
     }
 
+    /* Returns true when an interaction finding matches the search query. */
+    function interactionMatches(f) {
+      if (!query) return true;
+      return [f.patient, f.drug_a, f.brand_a, f.drug_b, f.brand_b, f.effect]
+        .some((field) => (field || "").toLowerCase().includes(query));
+    }
+
+    /* Renders one drug-drug interaction finding. */
+    function interactionRow(f) {
+      const chip = f.severity === "major"
+        ? '<span class="chip chip-stop">Major</span>'
+        : '<span class="chip chip-soon">Moderate</span>';
+      return `
+        <div class="interaction-row">
+          <div class="row-top">
+            <span class="interaction-pair">${highlight(f.drug_a, query)} (${highlight(f.brand_a, query)})
+              + ${highlight(f.drug_b, query)} (${highlight(f.brand_b, query)})</span>
+            <span class="row-spacer"></span>
+            ${chip}
+          </div>
+          <div class="row-sub">${highlight(f.patient, query)} takes both.</div>
+          <div class="row-sub">${esc(f.effect)}</div>
+          <div class="interaction-advice">${esc(f.advice)}</div>
+          <div class="interaction-source">${esc(f.source)}</div>
+        </div>`;
+    }
+
     /* Renders one panel prescription as an expandable table row. */
     function panelRow(ev) {
       const open = openRows.has(ev.event_id);
@@ -103,9 +131,10 @@
         <tr class="detail-row" data-for="${esc(ev.event_id)}" style="${open ? "" : "display:none"};background:#fafafc">
           <td colspan="5">
             <div class="detail-grid">
+              <div><div class="detail-label">Approved to treat</div><div class="detail-value">${highlight(ev.approved_uses, query)}</div></div>
+              <div><div class="detail-label">Common off-label uses</div><div class="detail-value">${highlight(ev.off_label, query)}</div></div>
               <div><div class="detail-label">Drug interactions</div><div class="detail-value">${highlight(ev.interactions, query)}</div></div>
               <div><div class="detail-label">Contraindications</div><div class="detail-value">${esc(ev.contraindications)}</div></div>
-              <div><div class="detail-label">Indication</div><div class="detail-value">${highlight(ev.indication, query)}</div></div>
               <div><div class="detail-label">Quantity / refills</div><div class="detail-value">${esc(ev.quantity)} / ${esc(ev.refills_remaining)}</div></div>
             </div>
           </td>
@@ -134,8 +163,15 @@
         ? `<h2 class="section-title">Needs your attention</h2>${stoppedVisible.map(alertCard).join("")}`
         : "";
 
+      const screenVisible = interactionScreen.filter(interactionMatches);
+      const screenSection = screenVisible.length ? `
+        <h2 class="section-title">Drug interaction screen &middot; ${screenVisible.length} found</h2>
+        <div class="card">${screenVisible.map(interactionRow).join("")}</div>`
+        : "";
+
       container.innerHTML = `
         ${alerts}
+        ${screenSection}
         <h2 class="section-title">Full panel</h2>
         <div class="card table-card">
           <table>
@@ -161,6 +197,7 @@
       try {
         const payload = await loadPayload();
         events = payload.events;
+        interactionScreen = payload.interaction_screen || [];
         render();
       } catch (err) {
         console.error("Stream connection error:", err);

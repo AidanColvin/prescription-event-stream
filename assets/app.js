@@ -21,6 +21,7 @@ function matchesQuery(ev, query) {
   return [
     ev.patient, ev.medication, ev.brand, ev.dea_schedule, ev.indication,
     ev.prescriber, ev.interactions, ev.event_id, ev.sig,
+    ev.approved_uses, ev.off_label,
   ].some((field) => (field || "").toLowerCase().includes(query));
 }
 

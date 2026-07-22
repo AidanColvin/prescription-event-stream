@@ -80,6 +80,10 @@
       const paused = ev.severity !== "clear" && finding ? `
         <div class="paused-note"><strong>Paused by the pharmacy.</strong>
           ${esc(finding.patient_message)}</div>` : "";
+      const interactionNotes = (ev.interaction_alerts || []).map((a) => `
+        <div class="paused-note ${a.severity === "major" ? "note-major" : "note-moderate"}">
+          <strong>${a.severity === "major" ? "Serious interaction" : "Interaction"} with ${esc(a.with_brand)}.</strong>
+          ${esc(a.plain_effect)} ${esc(a.advice)}</div>`).join("");
       return `
         <div class="med-row${open}" data-id="${esc(ev.event_id)}" role="button" tabindex="0"
              aria-expanded="${open ? "true" : "false"}">
@@ -92,8 +96,11 @@
           </div>
           <div class="row-sub">Treats ${highlight(ev.indication.toLowerCase(), query)} &middot; ${esc(ev.sig)}</div>
           ${paused}
+          ${interactionNotes}
           <div class="row-detail">
             <div class="detail-grid">
+              <div><div class="detail-label">Approved to treat</div><div class="detail-value">${highlight(ev.approved_uses, query)}</div></div>
+              <div><div class="detail-label">Common off-label uses</div><div class="detail-value">${highlight(ev.off_label, query)}</div></div>
               <div><div class="detail-label">Strength</div><div class="detail-value">${esc(ev.strength)} ${esc(ev.form)}</div></div>
               <div><div class="detail-label">Quantity per fill</div><div class="detail-value">${esc(ev.quantity)}</div></div>
               <div><div class="detail-label">Refills left</div><div class="detail-value">${esc(ev.refills_remaining)}</div></div>

@@ -42,6 +42,7 @@
   <script src="/assets/app.js"></script>
   <script>
     let events = [];
+    let interactionScreen = [];
     let query = "";
     let clearedOpen = false;
     const resolved = new Set();
@@ -78,6 +79,32 @@
             <button class="btn btn-secondary" data-action="resolve">Mark resolved</button>
             <button class="btn btn-secondary" data-action="refuse">Document refusal</button>
           </div>
+        </div>`;
+    }
+
+    /* Returns true when an interaction finding matches the search query. */
+    function interactionMatches(f) {
+      if (!query) return true;
+      return [f.patient, f.drug_a, f.brand_a, f.drug_b, f.brand_b, f.effect]
+        .some((field) => (field || "").toLowerCase().includes(query));
+    }
+
+    /* Renders one drug-drug interaction finding. */
+    function interactionRow(f) {
+      const chip = f.severity === "major"
+        ? '<span class="chip chip-stop">Major</span>'
+        : '<span class="chip chip-soon">Moderate</span>';
+      return `
+        <div class="interaction-row">
+          <div class="row-top">
+            <span class="interaction-pair">${highlight(f.drug_a, query)} (${highlight(f.brand_a, query)})
+              + ${highlight(f.drug_b, query)} (${highlight(f.brand_b, query)})</span>
+            <span class="row-spacer"></span>
+            ${chip}
+          </div>
+          <div class="row-sub">${highlight(f.patient, query)} takes both. ${esc(f.effect)}</div>
+          <div class="interaction-advice">${esc(f.advice)}</div>
+          <div class="interaction-source">${esc(f.source)}</div>
         </div>`;
     }
 
@@ -125,6 +152,13 @@
         html += stoppedVisible.map(verdictCard).join("");
       }
 
+      const screenVisible = interactionScreen.filter(interactionMatches);
+      if (screenVisible.length) {
+        html += `
+          <h2 class="section-title">Drug interaction screen &middot; ${screenVisible.length} found</h2>
+          <div class="card">${screenVisible.map(interactionRow).join("")}</div>`;
+      }
+
       if (clearedVisible.length && (showCleared || !stopped().length)) {
         html += `
           <h2 class="section-title">${query ? "Matches in the cleared queue" : "Cleared this morning"}</h2>
@@ -169,6 +203,7 @@
       try {
         const payload = await loadPayload();
         events = payload.events;
+        interactionScreen = payload.interaction_screen || [];
         render();
       } catch (err) {
         console.error("Stream connection error:", err);
