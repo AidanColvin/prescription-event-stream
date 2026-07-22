@@ -126,7 +126,7 @@
             background: var(--card-bg);
             border-radius: 16px;
             padding: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(0,0,0,0.04);
         }
         .stat-value {
@@ -145,7 +145,7 @@
         .table-container {
             background: var(--card-bg);
             border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(0,0,0,0.04);
             overflow: hidden;
             display: none;
@@ -188,7 +188,7 @@
             background: var(--card-bg);
             border-radius: 16px;
             padding: 40px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
             border: 1px solid rgba(0,0,0,0.04);
             display: none;
         }
@@ -235,7 +235,7 @@
 
         <div id="retry-banner" class="retry-banner">Connection interrupted. Reconnecting to Vercel serverless stream...</div>
 
-        <input type="text" id="search-input" class="search-bar" placeholder="Instant spotlight search: type any medication, brand, patient, or schedule..." oninput="renderData()" autocomplete="off">
+        <input type="text" id="search-input" class="search-bar" placeholder="Spotlight search: medication, brand, patient, schedule, or condition..." oninput="renderData()" autocomplete="off">
 
         <div class="stats-grid" id="stats-container">
             <div class="stat-card">
@@ -397,7 +397,7 @@
 
             if (currentView === 'patient') {
                 const tbody = document.getElementById('tbody-patient');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications or patients found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications, patients, or schedules found.</td></tr>`;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
@@ -411,7 +411,7 @@
                 });
             } else if (currentView === 'pharmacist') {
                 const tbody = document.getElementById('tbody-pharmacist');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching pharmacy records found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications, patients, or schedules found.</td></tr>`;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     const badgeClass = ev.high_volume === 'Review Required' ? 'badge-review' : 'badge-standard';
@@ -426,7 +426,7 @@
                 });
             } else if (currentView === 'md') {
                 const tbody = document.getElementById('tbody-md');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching clinical records found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications, patients, or schedules found.</td></tr>`;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
