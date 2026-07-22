@@ -238,8 +238,9 @@
         </header>
 
         <div class="controls-row" id="controls-row">
-            <input type="text" id="search-input" class="search-bar" placeholder="Spotlight search: medication, brand, patient, schedule, or condition..." oninput="renderData()" autocomplete="off">
-            <select id="profile-select" class="profile-select" onchange="renderData()">
+            <!-- Explicitly declared input ready for JavaScript DOM binding -->
+            <input type="text" id="search-input" class="search-bar" placeholder="Spotlight search: medication, brand, patient, schedule, or condition..." autocomplete="off">
+            <select id="profile-select" class="profile-select">
                 <option value="all">All Family Profiles</option>
                 <option value="Patricia Johnson">Patricia Johnson</option>
                 <option value="Mary Smith">Mary Smith</option>
@@ -387,10 +388,11 @@
         function renderData() {
             if (currentView === 'how') return;
 
-            const query = (document.getElementById('search-input').value || '').toLowerCase().trim();
+            const searchInput = document.getElementById('search-input');
+            const query = (searchInput.value || '').toLowerCase().trim();
             const selectedProfile = document.getElementById('profile-select').value;
 
-            // Universal live search filtering logic
+            // Universal live search filtering logic evaluating both Generic and Brand names
             const filtered = globalData.events.filter(ev => {
                 const pat = (ev.patient || '').toLowerCase();
                 const med = (ev.medication || '').toLowerCase();
@@ -405,7 +407,7 @@
                 return matchesSearch && matchesProfile;
             });
 
-            // Dynamically recalculate macro summary cards
+            // Dynamically recalculate macro summary cards for total synchronization
             const totalActive = filtered.length;
             const largeRefills = filtered.filter(e => e.quantity > 60).length;
             const qtySum = filtered.reduce((acc, curr) => acc + curr.quantity, 0);
@@ -427,7 +429,7 @@
                         <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="color:var(--accent); font-size:12px;">Strength: ${ev.strength} (${ev.form})</span></td>
                         <td>${ev.indication}<br><span style="font-size:12px; color:var(--text-secondary);">Off-label: ${ev.off_label}</span></td>
                         <td style="font-weight:500;">${ev.sig}</td>
-                        <td><span style="color:${ev.next_refill_due.includes('1') ? '#c62828' : '#0071e3'}; font-weight:600;">Due in: ${ev.next_refill_due}</span><br><span style="font-size:12px; color:var(--text-secondary);">${ev.refills_remaining} Total Refills Left</span></td>
+                        <td><span style="color:${ev.next_refill_due.includes('1 ') ? '#c62828' : '#0071e3'}; font-weight:600;">Due in: ${ev.next_refill_due}</span><br><span style="font-size:12px; color:var(--text-secondary);">${ev.refills_remaining} Total Refills Left</span></td>
                     `;
                     tbody.appendChild(tr);
                 });
@@ -464,8 +466,21 @@
             }
         }
 
-        fetchEvents();
-        setInterval(fetchEvents, 5000);
+        // Explicit DOM Binding for flawless Spotlight-style live execution
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', renderData);
+            }
+            
+            const profileSelect = document.getElementById('profile-select');
+            if (profileSelect) {
+                profileSelect.addEventListener('change', renderData);
+            }
+            
+            fetchEvents();
+            setInterval(fetchEvents, 5000);
+        });
     </script>
 </body>
 </html>

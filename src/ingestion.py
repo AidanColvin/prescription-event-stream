@@ -67,7 +67,7 @@ def get_refill_events():
             "form": med["form"],
             "quantity": qty,
             "sig": med["sig"],
-            "refills_remaining": random.randint(0, 5),
+            "refills_remaining": random.randint(0, 5) if med["schedule"] != "Schedule II" else 0,
             "next_refill_due": f"{random.randint(1,19)} Days",
             "dea_schedule": med["schedule"],
             "interactions": med["interactions"],
