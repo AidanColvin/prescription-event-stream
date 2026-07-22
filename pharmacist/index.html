@@ -11,7 +11,7 @@
     .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
     .nav a.active { background: var(--text-main); color: #fff; }
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
-    input[type="search"] { width: 100%; max-width: 440px; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 15px; outline: none; display: block; margin: 0 auto 30px; }
+    input[type="search"] { width: 100%; max-width: 440px; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 16px; outline: none; margin: 0 auto 30px; display: block; }
     .table-container { background: var(--card); border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
@@ -20,23 +20,24 @@
     .row:hover { background: #fafafc; }
     .details { display: none; background: #fafafc; }
     .details.active { display: table-row; }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .details td { padding: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
     .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
     .value { font-size: 14px; font-weight: 500; }
-    .badge { padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600; }
-    .badge.alert { background: #fee2e2; color: #dc2626; }
-    .badge.ok { background: #e2fbd7; color: #059669; }
-    .badge.sched { background: #fef08a; color: #854d0e; }
   </style>
 </head>
 <body>
-  <nav class="nav"><a href="/">Patient</a><a href="/pharmacist" class="active">Pharmacist</a><a href="/md">MD</a><a href="/how-it-works">How It Works</a></nav>
+  <nav class="nav">
+    <a href="/">Patient</a>
+    <a href="/pharmacist" class="active">Pharmacist</a>
+    <a href="/md">MD</a>
+  </nav>
   <div class="container">
-    <h1 style="text-align:center; margin-bottom: 30px;">Inventory & Compliance Queue</h1>
-    <input type="search" id="search" placeholder="Search patient, medication, or schedule..." oninput="render()" autocomplete="off" />
+    <h1 style="text-align:center; margin-bottom: 30px;">Inventory & Compliance</h1>
+    <input type="search" id="search" placeholder="Search compliance queue..." oninput="render()" />
     <div class="table-container">
       <table>
-        <thead><tr><th>Patient</th><th>Medication</th><th>DEA Sched</th><th>Volume Flag</th></tr></thead>
+        <thead><tr><th>Event ID</th><th>Medication</th><th>Qty</th><th>High Volume</th></tr></thead>
         <tbody id="list"></tbody>
       </table>
     </div>
@@ -45,37 +46,32 @@
     let events = [];
     let expanded = null;
     async function load() {
-      if (expanded) return;
-      const res = await fetch(`/api/events?count=20&t=${Date.now()}`);
+      if (document.getElementById('search').value || expanded) return;
+      const res = await fetch(`/api/events?count=15&t=${Date.now()}`);
       events = (await res.json()).events;
       render();
     }
     function toggle(id) { expanded = expanded === id ? null : id; render(); }
     function render() {
       const term = document.getElementById('search').value.toLowerCase();
-      const filtered = events.filter(e => e.patient_name.toLowerCase().includes(term) || e.medication.toLowerCase().includes(term) || e.dea_schedule.toLowerCase().includes(term));
-      
-      document.getElementById('list').innerHTML = filtered.map(e => {
-        const large = e.quantity > 60;
-        const isSched = e.dea_schedule.includes('Schedule');
-        return `
+      const filtered = events.filter(e => e.medication.toLowerCase().includes(term));
+      document.getElementById('list').innerHTML = filtered.map(e => `
         <tr class="row" onclick="toggle('${e.event_id}')">
-          <td style="font-weight: 600;">${e.patient_name}</td>
+          <td style="font-family: monospace; color: #86868b;">${e.event_id}</td>
           <td style="font-weight: 600;">${e.medication}</td>
-          <td><span class="badge ${isSched ? 'sched' : 'ok'}">${e.dea_schedule}</span></td>
-          <td><span class="badge ${large ? 'alert' : 'ok'}">${large ? 'Review Required' : 'Standard'}</span></td>
+          <td>${e.quantity}</td>
+          <td><span style="background: ${e.is_large_refill ? '#fee2e2' : '#e2fbd7'}; color: ${e.is_large_refill ? '#dc2626' : '#059669'}; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;">${e.is_large_refill ? 'Review' : 'Standard'}</span></td>
         </tr>
         <tr class="details ${expanded === e.event_id ? 'active' : ''}">
-          <td colspan="4" style="padding:24px;">
+          <td colspan="4">
             <div class="grid">
-              <div><div class="label">Quantity / Refills</div><div class="value">${e.quantity} units (${e.refill_data.refills_remaining} remaining)</div></div>
-              <div><div class="label">Early Refill Status</div><div class="value" style="color:${e.refill_data.is_early_refill ? '#dc2626' : '#059669'}">${e.refill_data.is_early_refill ? 'WARNING: Early Request' : 'Compliant'}</div></div>
+              <div><div class="label">DEA Schedule</div><div class="value">${e.dea_schedule}</div></div>
               <div><div class="label">Generic Substitution</div><div class="value">${e.substitution}</div></div>
-              <div><div class="label">Source</div><div class="value" style="color:#0071e3;">${e.source}</div></div>
+              <div><div class="label">Verification Source</div><div class="value" style="color:#0071e3;">${e.source}</div></div>
             </div>
           </td>
         </tr>
-      `}).join('');
+      `).join('');
     }
     load(); setInterval(load, 5000);
   </script>

@@ -11,7 +11,7 @@
     .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
     .nav a.active { background: var(--text-main); color: #fff; }
     .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
-    input[type="search"] { width: 100%; max-width: 440px; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 15px; outline: none; display: block; margin: 0 auto 30px; }
+    input[type="search"] { width: 100%; max-width: 440px; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 16px; outline: none; margin: 0 auto 30px; display: block; }
     .table-container { background: var(--card); border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden; }
     table { width: 100%; border-collapse: collapse; text-align: left; }
     th, td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
@@ -20,20 +20,24 @@
     .row:hover { background: #fafafc; }
     .details { display: none; background: #fafafc; }
     .details.active { display: table-row; }
+    .details td { padding: 24px; }
     .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
     .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
     .value { font-size: 14px; font-weight: 500; }
-    .alert-text { color: #dc2626; font-weight: 600; }
   </style>
 </head>
 <body>
-  <nav class="nav"><a href="/">Patient</a><a href="/pharmacist">Pharmacist</a><a href="/md" class="active">MD</a><a href="/how-it-works">How It Works</a></nav>
+  <nav class="nav">
+    <a href="/">Patient</a>
+    <a href="/pharmacist">Pharmacist</a>
+    <a href="/md" class="active">MD</a>
+  </nav>
   <div class="container">
     <h1 style="text-align:center; margin-bottom: 30px;">Clinical Safety Profile</h1>
-    <input type="search" id="search" placeholder="Search patient or medication..." oninput="render()" autocomplete="off" />
+    <input type="search" id="search" placeholder="Search patient or medication..." oninput="render()" />
     <div class="table-container">
       <table>
-        <thead><tr><th>Patient</th><th>Medication</th><th>Adherence</th><th>Safety Flags</th></tr></thead>
+        <thead><tr><th>Patient</th><th>Medication</th><th>Indication</th></tr></thead>
         <tbody id="list"></tbody>
       </table>
     </div>
@@ -42,29 +46,27 @@
     let events = [];
     let expanded = null;
     async function load() {
-      if (expanded) return;
-      const res = await fetch(`/api/events?count=20&t=${Date.now()}`);
+      if (document.getElementById('search').value || expanded) return;
+      const res = await fetch(`/api/events?count=15&t=${Date.now()}`);
       events = (await res.json()).events;
       render();
     }
     function toggle(id) { expanded = expanded === id ? null : id; render(); }
     function render() {
       const term = document.getElementById('search').value.toLowerCase();
-      const filtered = events.filter(e => e.patient_name.toLowerCase().includes(term) || e.medication.toLowerCase().includes(term));
-      
+      const filtered = events.filter(e => e.medication.toLowerCase().includes(term) || e.patient_data.name.toLowerCase().includes(term));
       document.getElementById('list').innerHTML = filtered.map(e => `
         <tr class="row" onclick="toggle('${e.event_id}')">
-          <td><div style="font-weight: 600;">${e.patient_name}</div><div style="font-size:12px; color:#86868b">${e.diagnoses.join(', ')}</div></td>
+          <td style="font-weight: 600;">${e.patient_data.name}</td>
           <td style="font-weight: 600;">${e.medication}</td>
-          <td>${e.adherence_score}</td>
-          <td>${e.interaction_alert || e.refill_data.is_early_refill ? '<span class="alert-text">Review Required</span>' : '<span style="color:#059669; font-weight:600;">Clear</span>'}</td>
+          <td>${e.indication}</td>
         </tr>
         <tr class="details ${expanded === e.event_id ? 'active' : ''}">
-          <td colspan="4" style="padding:24px;">
+          <td colspan="3">
             <div class="grid">
-              <div><div class="label">Contraindications</div><div class="value">${e.contraindications}</div></div>
-              <div><div class="label">Drug-Drug Interactions</div><div class="value ${e.interaction_alert ? 'alert-text' : ''}">${e.interaction_alert || 'No known interactions.'}</div></div>
-              <div><div class="label">Utilization Profile</div><div class="value">${e.refill_data.is_early_refill ? '<span class="alert-text">Flag: Early Refill Pattern</span>' : 'Standard Refill Pattern'}</div></div>
+              <div><div class="label">Patient Adherence</div><div class="value">${e.patient_data.adherence_score}</div></div>
+              <div><div class="label">Contraindications</div><div class="value" style="color:#dc2626;">${e.contraindications}</div></div>
+              <div><div class="label">Drug Interactions</div><div class="value">${e.interactions}</div></div>
             </div>
           </td>
         </tr>
