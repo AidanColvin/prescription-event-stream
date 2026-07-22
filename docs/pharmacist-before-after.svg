@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 920 330" style="background:#f5f5f7" xmlns="http://www.w3.org/2000/svg" role="img"
+             aria-label="Before: a table row with a Review Required sticker. After: a verdict card that says Do not fill, with reasons and citations."
+             font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif">
+          <text x="10" y="24" font-size="12" font-weight="600" fill="#86868b" letter-spacing="0.8">BEFORE</text>
+          <rect x="10" y="34" width="900" height="64" rx="12" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="34" y="62" font-size="13.5" font-weight="600" fill="#1d1d1f">James Smith</text>
+          <text x="34" y="80" font-size="11" fill="#86868b" font-family="ui-monospace, Menlo, monospace">EVT-1001</text>
+          <text x="220" y="62" font-size="13.5" fill="#1d1d1f">Zolpidem / Ambien 10 mg</text>
+          <text x="470" y="62" font-size="13.5" fill="#1d1d1f">Schedule IV</text>
+          <text x="620" y="62" font-size="13.5" fill="#1d1d1f">Qty 90 &middot; 4 refills</text>
+          <rect x="780" y="46" width="112" height="24" rx="6" fill="#ffebee"/>
+          <text x="794" y="63" font-size="12" fill="#c62828">Review Required</text>
+          <text x="10" y="122" font-size="12.5" fill="#c62828">Review by whom, against what rule, and what happens if I do not?</text>
+
+          <text x="10" y="164" font-size="12" font-weight="600" fill="#86868b" letter-spacing="0.8">AFTER</text>
+          <rect x="10" y="174" width="900" height="140" rx="14" fill="#ffffff" stroke="#d2d2d7"/>
+          <rect x="10" y="174" width="3" height="140" fill="#c62828"/>
+          <text x="38" y="208" font-size="19" font-weight="600" fill="#1d1d1f">Do not fill.</text>
+          <text x="38" y="230" font-size="12" fill="#86868b">James Smith, EVT-1001. Zolpidem Tartrate 10 mg, quantity 90, 4 refills.</text>
+          <text x="38" y="258" font-size="12.5" font-weight="600" fill="#1d1d1f">1&#160;&#160;James Smith is 11 years old.</text>
+          <text x="58" y="274" font-size="11.5" fill="#86868b">The label establishes a minimum age of 18.&#160;&#160;&#160;DailyMed SPL 8.4</text>
+          <text x="38" y="296" font-size="12.5" font-weight="600" fill="#1d1d1f">2&#160;&#160;450 days authorized on a CIV prescription.</text>
+          <text x="58" y="311" font-size="11.5" fill="#86868b">Refills expire 180 days after the issue date.&#160;&#160;&#160;21 CFR 1306.22</text>
+        </svg>
