@@ -1,5 +1,4 @@
 import random
-import time
 
 def get_refill_events():
     """Generates simulated prescription refill events meeting U.S. compliance standards."""
@@ -69,7 +68,7 @@ def get_refill_events():
             "quantity": qty,
             "sig": med["sig"],
             "refills_remaining": random.randint(0, 5),
-            "next_refill_due": f"1{random.randint(0,9)} Days",
+            "next_refill_due": f"{random.randint(1,19)} Days",
             "dea_schedule": med["schedule"],
             "interactions": med["interactions"],
             "contraindications": med["contraindications"],
