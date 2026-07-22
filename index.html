@@ -235,7 +235,7 @@
 
         <div id="retry-banner" class="retry-banner">Connection interrupted. Reconnecting to Vercel serverless stream...</div>
 
-        <input type="text" id="search-input" class="search-bar" placeholder="Search medications (e.g., Ambien, Lisinopril), patients, or DEA schedule..." oninput="renderData()" autocomplete="off">
+        <input type="text" id="search-input" class="search-bar" placeholder="Instant spotlight search: type any medication, brand, patient, or schedule..." oninput="renderData()" autocomplete="off">
 
         <div class="stats-grid" id="stats-container">
             <div class="stat-card">
@@ -387,12 +387,13 @@
                 const brand = (ev.brand || '').toLowerCase();
                 const sched = (ev.dea_schedule || '').toLowerCase();
                 const ind = (ev.indication || '').toLowerCase();
-                return pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query);
+                const inter = (ev.interactions || '').toLowerCase();
+                return pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query) || inter.includes(query);
             });
 
             if (currentView === 'patient') {
                 const tbody = document.getElementById('tbody-patient');
-                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching prescriptions found.</td></tr>`;
+                tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications or patients found.</td></tr>`;
                 filtered.forEach(ev => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `

@@ -1,5 +1,4 @@
 import random
-import time
 
 def get_refill_events():
     """Generates simulated prescription refill events meeting U.S. compliance standards."""
