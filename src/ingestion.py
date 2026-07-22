@@ -1,70 +1,84 @@
 import random
 import time
-import uuid
 
-MEDICATIONS = [
-    {
-        "generic": "Zolpidem Tartrate", "brand": "Ambien", "class": "Sedative-Hypnotic", 
-        "indication": "Insomnia", "off_label": "Restless leg syndrome", 
-        "schedule": "IV", "moa": "GABA-A receptor agonist", 
-        "contraindications": "Complex sleep behaviors", 
-        "sig": "Take 1 tablet by mouth at bedtime.", "storage": "Store at room temperature.", 
-        "side_effects": "Dizziness, daytime drowsiness.", "interactions": "CNS depressants.",
-        "substitution": "Generic substitution permitted.", "source": "Drugs@FDA"
-    },
-    {
-        "generic": "Lisinopril", "brand": "Zestril", "class": "ACE Inhibitor", 
-        "indication": "Hypertension", "off_label": "Migraine prevention", 
-        "schedule": "Rx", "moa": "Inhibits angiotensin-converting enzyme", 
-        "contraindications": "History of angioedema", 
-        "sig": "Take 1 tablet by mouth daily.", "storage": "Keep dry at room temperature.", 
-        "side_effects": "Dry cough, dizziness.", "interactions": "NSAIDs, potassium supplements.",
-        "substitution": "Generic substitution permitted.", "source": "DailyMed (NIH)"
-    },
-    {
-        "generic": "Metformin HCl", "brand": "Glucophage", "class": "Biguanide", 
-        "indication": "Type 2 Diabetes", "off_label": "PCOS", 
-        "schedule": "Rx", "moa": "Decreases hepatic glucose production", 
-        "contraindications": "Severe renal impairment", 
-        "sig": "Take 1 tablet by mouth twice daily with meals.", "storage": "Store at room temperature.", 
-        "side_effects": "Nausea, stomach upset.", "interactions": "Iodinated contrast.",
-        "substitution": "Generic substitution permitted.", "source": "Drugs@FDA"
-    }
-]
+def get_refill_events():
+    """Generates simulated prescription refill events meeting U.S. compliance standards."""
+    medications = [
+        {
+            "generic": "Zolpidem Tartrate", "brand": "Ambien", "class": "Sedative-Hypnotic",
+            "indication": "Insomnia", "off_label": "Restless leg syndrome", "schedule": "Schedule IV",
+            "sig": "Take 1 tablet by mouth at bedtime.", "strength": "10 mg", "form": "Tablet",
+            "interactions": "CNS depressants, alcohol", "contraindications": "Complex sleep behaviors",
+            "source": "Drugs@FDA / DailyMed"
+        },
+        {
+            "generic": "Lisinopril", "brand": "Zestril", "class": "ACE Inhibitor",
+            "indication": "Hypertension", "off_label": "Migraine prevention", "schedule": "Non-controlled",
+            "sig": "Take 1 tablet by mouth daily.", "strength": "20 mg", "form": "Tablet",
+            "interactions": "NSAIDs, potassium supplements", "contraindications": "History of angioedema, pregnancy",
+            "source": "DailyMed (NIH)"
+        },
+        {
+            "generic": "Metformin HCl", "brand": "Glucophage", "class": "Biguanide",
+            "indication": "Type 2 Diabetes", "off_label": "PCOS Management", "schedule": "Non-controlled",
+            "sig": "Take 1 tablet by mouth twice daily with meals.", "strength": "500 mg", "form": "Tablet",
+            "interactions": "Iodinated contrast media", "contraindications": "Severe renal impairment",
+            "source": "Drugs@FDA"
+        },
+        {
+            "generic": "Amphetamine / Dextroamphetamine", "brand": "Adderall", "class": "Central Nervous System Stimulant",
+            "indication": "ADHD", "off_label": "Treatment-resistant depression", "schedule": "Schedule II",
+            "sig": "Take 1 capsule orally once daily in the morning.", "strength": "20 mg", "form": "Capsule",
+            "interactions": "MAOIs, serotonergic drugs", "contraindications": "History of marked anxiety, glaucoma",
+            "source": "AHFS / PDR"
+        }
+    ]
+    
+    patients = [
+        {"name": "Patricia Johnson", "dob": "1988-04-12", "address": "142 Maple St, Raleigh, NC", "phone": "919-555-0192", "insurance": "BlueCross NC (ID: BC99281, Grp: 400)"},
+        {"name": "Mary Smith", "dob": "1975-09-23", "address": "810 Oak Ave, Durham, NC", "phone": "919-555-4811", "insurance": "Aetna Healthcare (ID: AET4419, Grp: 102)"},
+        {"name": "James Smith", "dob": "2015-02-14", "address": "810 Oak Ave, Durham, NC", "phone": "919-555-4811", "insurance": "Medicaid NC (ID: MED7721, Grp: 88)"}
+    ]
 
-def generate_patient():
-    firsts = ["James", "Mary", "Robert", "Patricia", "John"]
-    lasts = ["Smith", "Johnson", "Williams", "Brown", "Jones"]
-    return {
-        "patient_id": str(uuid.uuid4())[:8].upper(),
-        "name": f"{random.choice(firsts)} {random.choice(lasts)}",
-        "adherence_score": f"{random.randint(65, 100)}%"
-    }
-
-def generate_events(count=20):
+    prescribers = [
+        {"name": "Dr. Sarah Jenkins, MD", "designation": "MD", "address": "Triangle Medical Center, Chapel Hill, NC", "phone": "919-966-4000", "license": "NC-209381", "dea": "BJ8839201"},
+        {"name": "Dr. Robert Chen, DO", "designation": "DO", "address": "Carolina Family Practice, Raleigh, NC", "phone": "919-832-0011", "license": "NC-184920", "dea": "None (Non-controlled)"}
+    ]
+    
     events = []
-    current_time = int(time.time())
-    for i in range(count):
-        med = random.choice(MEDICATIONS)
+    for i in range(1, 13):
+        med = random.choice(medications)
+        pat = random.choice(patients)
+        pres = random.choice(prescribers)
         qty = random.choice([30, 60, 90])
-        event = {
-            "event_id": f"EVT-{current_time}-{i:03d}",
+        
+        events.append({
+            "event_id": f"EVT-{random.randint(100000, 999999)}",
+            "patient": pat["name"],
+            "dob": pat["dob"],
+            "address": pat["address"],
+            "phone": pat["phone"],
+            "insurance": pat["insurance"],
+            "prescriber": pres["name"],
+            "designation": pres["designation"],
+            "prescriber_address": pres["address"],
+            "license": pres["license"],
+            "dea": pres["dea"],
             "medication": med["generic"],
-            "brand_name": med["brand"],
+            "brand": med["brand"],
             "drug_class": med["class"],
             "indication": med["indication"],
             "off_label": med["off_label"],
-            "dea_schedule": med["schedule"],
-            "moa": med["moa"],
-            "contraindications": med["contraindications"],
-            "sig": med["sig"],
-            "storage": med["storage"],
-            "side_effects": med["side_effects"],
-            "interactions": med["interactions"],
-            "substitution": med["substitution"],
+            "strength": med["strength"],
+            "form": med["form"],
             "quantity": qty,
-            "source": med["source"],
-            "patient_data": generate_patient()
-        }
-        events.append(event)
+            "sig": med["sig"],
+            "refills_remaining": random.randint(0, 5),
+            "next_refill_due": "2026-08-15",
+            "dea_schedule": med["schedule"],
+            "interactions": med["interactions"],
+            "contraindications": med["contraindications"],
+            "adherence_score": f"{random.randint(78, 100)}%",
+            "source": med["source"]
+        })
     return events
