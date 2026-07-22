@@ -258,7 +258,7 @@
                 <thead>
                     <tr>
                         <th>Patient Profile</th>
-                        <th>Medication & Brand</th>
+                        <th>Medication (Generic / Brand)</th>
                         <th>What It Treats</th>
                         <th>Directions (Sig)</th>
                         <th>Refill Due</th>
@@ -386,7 +386,6 @@
                 return pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query) || inter.includes(query);
             });
 
-            // Dynamically update macro summary cards based on search results
             let filteredTotal = filtered.length;
             let filteredLarge = filtered.filter(e => e.quantity > 60).length;
             let filteredQtySum = filtered.reduce((acc, curr) => acc + curr.quantity, 0);
@@ -403,7 +402,7 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><strong>${ev.patient}</strong><br><span style="font-size:12px; color:var(--text-secondary);">DOB: ${ev.dob}</span></td>
-                        <td><strong>${ev.medication}</strong><br><span style="color:var(--accent); font-size:12px;">Brand: ${ev.brand} (${ev.strength})</span></td>
+                        <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="color:var(--accent); font-size:12px;">Strength: ${ev.strength} (${ev.form})</span></td>
                         <td>${ev.indication}<br><span style="font-size:12px; color:var(--text-secondary);">Off-label: ${ev.off_label}</span></td>
                         <td style="font-weight:500;">${ev.sig}</td>
                         <td><span style="color:#0066cc; font-weight:600;">Due: ${ev.next_refill_due}</span><br><span style="font-size:12px; color:var(--text-secondary);">${ev.refills_remaining} refills left</span></td>
