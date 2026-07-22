@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 
 type PrescriptionFormData = z.infer<typeof createPrescriptionSchema>;
 
-/** Renders the prescriber form interface for creating US compliant prescriptions. */
+/* Renders the prescriber form interface for creating US compliant prescriptions. */
 export default function PrescriberFormPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -32,7 +32,9 @@ export default function PrescriberFormPage() {
   const controlledSchedule = watch("details.controlledSchedule");
 
   useEffect(() => {
-    if (controlledSchedule === "CII") setValue("details.refillsAuthorized", 0);
+    if (controlledSchedule === "CII") {
+      setValue("details.refillsAuthorized", 0);
+    }
   }, [controlledSchedule, setValue]);
 
   const onSubmit = async (data: PrescriptionFormData) => {
@@ -126,7 +128,7 @@ export default function PrescriberFormPage() {
             <h2 className="text-xl font-medium border-b border-[#d2d2d7] pb-3 mb-6 sticky top-0 bg-white z-10">Medication Details</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Drug Name</label>
+                <label className="block text-xs font-medium uppercase tracking-wider text-[#86868b] mb-2">Drug Name (Generic / Brand)</label>
                 <input {...register("details.drugName")} className="w-full border border-[#d2d2d7] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#0071e3]" />
               </div>
               <div>
