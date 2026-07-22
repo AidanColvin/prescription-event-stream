@@ -52,6 +52,40 @@ count of what cleared. Nothing on any screen is hardcoded.
 
 ![Pharmacist surface before and after](docs/pharmacist-before-after.svg)
 
+## Drug interaction screen
+
+Alongside the per-prescription rules, the server screens each patient's
+full regimen for known drug-drug interactions. The screen runs per
+person — an interaction is a property of two prescriptions in one body,
+never of the queue — and each finding carries a severity, the clinical
+mechanism, a plain-language version for patients, and a suggested
+action, sourced from AHFS Drug Information and FDA prescribing
+information.
+
+On the current queue it finds three:
+
+| Severity | Pair | Patient | Risk |
+| --- | --- | --- | --- |
+| Major | Sertraline + Tramadol | Mary Smith | Serotonin syndrome |
+| Moderate | Sertraline + Ibuprofen | Mary Smith | GI bleeding |
+| Moderate | Omeprazole + Warfarin | Patricia Johnson | Elevated INR |
+
+Warfarin + ibuprofen is a known major interaction but never fires here:
+those prescriptions belong to different patients, and a test asserts
+the screen never pairs drugs across people.
+
+![Drug interaction screen](docs/interaction-screen.svg)
+
+## Medication knowledge
+
+Every medication answers two questions a patient actually asks: what is
+this approved to treat, and what else is it commonly prescribed for?
+Each roster entry carries `approved_uses` (FDA-approved indications)
+and `off_label` (commonly recognized off-label uses, stated honestly —
+including "none commonly recognized" where that is the truth). Both
+render in the expandable detail on the patient and MD views and are
+reachable from every search box.
+
 ## Data honesty
 
 The interface previously carried a green badge reading SECURE U.S.
@@ -66,6 +100,7 @@ patients.
   every request, so every count on every screen is reproducible.
 - `src/rules/` — the engine. One file per rule; adding a rule means
   writing one function and registering it in `REGISTERED_RULES`.
+  `interactions.py` holds the per-patient drug-drug interaction screen.
 - `src/transform.py` — evaluates each event and attaches findings,
   verdicts, DEA status, and a computed queue summary.
 - `api/events.py` — a Python serverless function on Vercel serving the
@@ -86,8 +121,8 @@ python3 -m unittest discover -s tests
 ```
 
 Covers the ingestion and transform pipeline, all three rules, the
-clinical math (age, sig parsing, days supply), the DEA checksum, and the
-computed queue summary.
+clinical math (age, sig parsing, days supply), the DEA checksum, the
+drug interaction screen, and the computed queue summary.
 
 ## Deployment
 
