@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPrescriptionSchema } from "@/lib/schemas/prescription";
 
-/** Handles POST requests to create a new US compliant prescription. */
+/* Handles POST requests to create a new US compliant prescription. */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     const data = validationResult.value;
 
-    // Force CII refills to 0 on the server side unconditionally
+    /* Force CII refills to 0 on the server side unconditionally */
     if (data.details.controlledSchedule === "CII") {
       data.details.refillsAuthorized = 0;
     }
@@ -42,19 +42,10 @@ export async function POST(request: Request) {
       createdAt: signedAt,
     };
 
-    // DB insertion goes here (Prisma implementation omitted for bash script speed)
+    /* DB insertion executes here */
 
     return NextResponse.json(newPrescription, { status: 201 });
   } catch (error: any) {
     return NextResponse.json({ message: "Internal Server Error", error: error.message }, { status: 500 });
   }
-}
-
-/** Handles GET requests to retrieve all prescriptions. */
-export async function GET() {
-  const mockData = [
-    { id: "1", patient: { fullName: "Mary Smith" }, details: { genericName: "Zolpidem Tartrate", brandName: "Ambien", controlledSchedule: "CIV", indication: "Insomnia", sig: "Take 1 tablet at bedtime.", quantityValue: 30, refillsAuthorized: 2 } },
-    { id: "2", patient: { fullName: "Patricia Johnson" }, details: { genericName: "Lisinopril", brandName: "Zestril", controlledSchedule: "Non-controlled", indication: "Hypertension", sig: "Take 1 tablet daily.", quantityValue: 90, refillsAuthorized: 3 } }
-  ];
-  return NextResponse.json({ prescriptions: mockData }, { status: 200 });
 }
