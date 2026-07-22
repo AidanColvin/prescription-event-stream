@@ -1,51 +1,25 @@
 import { NextResponse } from "next/server";
 import { createPrescriptionSchema } from "@/lib/schemas/prescription";
 
-/* Handles POST requests to create a new US compliant prescription. */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const validationResult = createPrescriptionSchema.safeParse(body);
+    const result = createPrescriptionSchema.safeParse(body);
+    if (!result.success) return NextResponse.json({ message: "Validation failed", errors: result.error.format() }, { status: 400 });
 
-    if (!validationResult.success) {
-      return NextResponse.json(
-        { message: "Validation failed.", errors: validationResult.error.format() },
-        { status: 400 }
-      );
-    }
-
-    const data = validationResult.value;
-
-    /* Force CII refills to 0 on the server side unconditionally */
-    if (data.details.controlledSchedule === "CII") {
-      data.details.refillsAuthorized = 0;
-    }
+    const data = result.value;
+    if (data.details.controlledSchedule === "CII") data.details.refillsAuthorized = 0; // Server-side enforcement
 
     const signedAt = new Date().toISOString();
     const prescriptionId = `rx_${Math.random().toString(36).substring(2, 9)}`;
-
-    const newPrescription = {
-      id: prescriptionId,
-      ...data,
-      signedAt,
-      status: "created",
-      createdAt: signedAt,
-    };
-
-    const initialEvent = {
-      id: `evt_${Math.random().toString(36).substring(2, 9)}`,
-      prescriptionId,
-      actorRole: "prescriber",
-      actorId: data.prescriber.fullName,
-      type: "created",
-      payload: JSON.stringify(newPrescription),
-      createdAt: signedAt,
-    };
-
-    /* DB insertion executes here */
+    const newPrescription = { id: prescriptionId, ...data, signedAt, status: "created", createdAt: signedAt };
 
     return NextResponse.json(newPrescription, { status: 201 });
   } catch (error: any) {
-    return NextResponse.json({ message: "Internal Server Error", error: error.message }, { status: 500 });
+    return NextResponse.json({ message: "Server Error", error: error.message }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ events: [] }, { status: 200 });
 }
