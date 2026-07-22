@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/icon-256.png" width="112" alt="Second Look icon: a magnifying glass over a capsule">
+</p>
+
 # prescription-event-stream
 
 ![tests](https://github.com/AidanColvin/prescription-event-stream/actions/workflows/tests.yml/badge.svg)

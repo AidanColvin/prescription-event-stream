@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3aa0ff"/>
+      <stop offset="1" stop-color="#0066d6"/>
+    </linearGradient>
+  </defs>
+
+  <!-- iOS squircle -->
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
+
+  <!-- Magnifying glass: the second look -->
+  <circle cx="460" cy="460" r="212" fill="none" stroke="#ffffff" stroke-width="66"/>
+  <line x1="618" y1="618" x2="784" y2="784" stroke="#ffffff" stroke-width="92" stroke-linecap="round"/>
+
+  <!-- The capsule under inspection -->
+  <g transform="rotate(-45 460 460)">
+    <rect x="338" y="404" width="244" height="112" rx="56" fill="#ffffff"/>
+    <line x1="460" y1="404" x2="460" y2="516" stroke="#1583f2" stroke-width="14"/>
+  </g>
+</svg>
