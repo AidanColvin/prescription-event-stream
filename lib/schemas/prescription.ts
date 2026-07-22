@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-/** Validates US 10 digit phone numbers and normalizes them to E.164 format. */
+/* Validates US 10 digit phone numbers and normalizes them to E.164 format. */
 const phoneRegex = /^(\+?1\s?)?(\(\d{3}\)|\d{3})[\s.-]?\d{3}[\s.-]?\d{4}$/;
 const normalizePhone = (val: string): string => {
   const digits = val.replace(/\D/g, "");
@@ -8,10 +8,10 @@ const normalizePhone = (val: string): string => {
   return `+1${nationalNumber}`;
 };
 
-/** Validates US postal codes in NNNNN or NNNNN-NNNN format. */
-const postalCodeRegex = /^\d{5}(-\d{4})?$/;
+/* Validates US postal codes in NNNNN or NNNNN NNNN format. */
+const postalCodeRegex = /^\d{5}(?:-\d{4})?$/;
 
-/** Validates DEA registration numbers and performs checksum verification. */
+/* Validates DEA registration numbers and performs checksum verification. */
 const deaRegex = /^[A-Z]{2}\d{7}$/;
 export const validateDeaChecksum = (dea: string): boolean => {
   if (!deaRegex.test(dea)) return false;
@@ -22,7 +22,7 @@ export const validateDeaChecksum = (dea: string): boolean => {
   return total % 10 === digits[6];
 };
 
-/** Schema for US residential and practice addresses. */
+/* Schema for US residential and practice addresses. */
 export const addressSchema = z.object({
   street1: z.string().min(1, "Street address is required.").trim(),
   street2: z.string().optional().transform((val) => val?.trim()),
@@ -31,7 +31,7 @@ export const addressSchema = z.object({
   postalCode: z.string().regex(postalCodeRegex, "Invalid postal code format."),
 });
 
-/** Schema for patient information validation. */
+/* Schema for patient information validation. */
 export const patientSchema = z.object({
   fullName: z.string().min(2, "Full legal name must be at least 2 characters.").trim(),
   address: addressSchema,
@@ -55,7 +55,7 @@ export const patientSchema = z.object({
     }),
 });
 
-/** Schema for prescriber credentials validation. */
+/* Schema for prescriber credentials validation. */
 export const prescriberSchema = z.object({
   fullName: z.string().min(1, "Prescriber name is required.").trim(),
   designation: z.enum(["MD", "DO", "NP", "PA", "DDS", "DMD", "DPM", "OD"]),
@@ -70,7 +70,7 @@ export const prescriberSchema = z.object({
   }),
 });
 
-/** Schema for medication and prescription details validation. */
+/* Schema for medication and prescription details validation. */
 export const prescriptionDetailsSchema = z
   .object({
     issueDate: z.string().refine((val) => {
@@ -99,7 +99,7 @@ export const prescriptionDetailsSchema = z
     }
   });
 
-/** Combined master prescription creation schema with cross field validation rules. */
+/* Combined master prescription creation schema with cross field validation rules. */
 export const createPrescriptionSchema = z
   .object({
     patient: patientSchema,
