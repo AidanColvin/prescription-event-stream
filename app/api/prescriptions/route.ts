@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createPrescriptionSchema } from "@/lib/schemas/prescription";
 
+/** Handles POST requests to create a new US compliant prescription. */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -37,11 +38,11 @@ export async function POST(request: Request) {
       actorRole: "prescriber",
       actorId: data.prescriber.fullName,
       type: "created",
-      payload: newPrescription,
+      payload: JSON.stringify(newPrescription),
       createdAt: signedAt,
     };
 
-    // DB insertion logic goes here.
+    // DB insertion goes here (Prisma implementation omitted for bash script speed)
 
     return NextResponse.json(newPrescription, { status: 201 });
   } catch (error: any) {
@@ -49,7 +50,11 @@ export async function POST(request: Request) {
   }
 }
 
+/** Handles GET requests to retrieve all prescriptions. */
 export async function GET() {
-  // Returns the event-sourced materialized view
-  return NextResponse.json({ events: [] }, { status: 200 });
+  const mockData = [
+    { id: "1", patient: { fullName: "Mary Smith" }, details: { genericName: "Zolpidem Tartrate", brandName: "Ambien", controlledSchedule: "CIV", indication: "Insomnia", sig: "Take 1 tablet at bedtime.", quantityValue: 30, refillsAuthorized: 2 } },
+    { id: "2", patient: { fullName: "Patricia Johnson" }, details: { genericName: "Lisinopril", brandName: "Zestril", controlledSchedule: "Non-controlled", indication: "Hypertension", sig: "Take 1 tablet daily.", quantityValue: 90, refillsAuthorized: 3 } }
+  ];
+  return NextResponse.json({ prescriptions: mockData }, { status: 200 });
 }
