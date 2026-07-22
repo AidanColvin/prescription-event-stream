@@ -144,7 +144,7 @@
         return flagged(a[1]) - flagged(b[1]) || a[0].localeCompare(b[0]);
       });
 
-      container.innerHTML = people.map(([name, list]) => {
+      container.innerHTML = medInfoSection(events, query) + people.map(([name, list]) => {
         list.sort((a, b) => {
           const urgency = (e) => e.severity !== "clear" ? -1 : (parseInt(e.next_refill_due, 10) || 999);
           return urgency(a) - urgency(b);

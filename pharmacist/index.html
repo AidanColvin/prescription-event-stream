@@ -134,7 +134,7 @@
       const clearedVisible = cleared().filter((ev) => matchesQuery(ev, query));
       const showCleared = clearedOpen || Boolean(query);
 
-      let html = "";
+      let html = medInfoSection(events, query);
 
       if (!stopped().length) {
         html += `
