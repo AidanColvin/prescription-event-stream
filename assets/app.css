@@ -216,6 +216,13 @@ h1 {
   font-size: 11.5px; color: var(--muted);
   font-family: ui-monospace, Menlo, monospace;
 }
+.medinfo-source a { color: var(--accent); text-decoration: none; }
+.medinfo-source a:hover { text-decoration: underline; }
+.medinfo-external { border-left: 3px solid var(--accent); }
+.external-hint {
+  text-align: center; font-size: 13px; color: var(--muted);
+  margin: 0 0 20px;
+}
 
 /* Drug-drug interaction notes */
 .note-moderate { background: var(--amber-bg); }

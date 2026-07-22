@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 from src.ingestion import get_refill_events
 from src.transform import process_events
+from src.drug_lookup import lookup_drug
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -25,6 +26,16 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.split("?")[0].rstrip("/") or "/"
+        if path.startswith("/api/drug"):
+            from urllib.parse import parse_qs, urlparse
+            term = (parse_qs(urlparse(self.path).query).get("name") or [""])[0]
+            body = json.dumps(lookup_drug(term)).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if path.startswith("/api/events"):
             payload = process_events(get_refill_events())
             body = json.dumps(payload).encode("utf-8")

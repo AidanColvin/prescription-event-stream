@@ -78,6 +78,66 @@ function medInfoSection(events, query) {
     ${meds.map((m) => medInfoCard(m, query)).join("")}`;
 }
 
+/* Live lookup for drugs not in the family's data, via /api/drug
+   (RxNorm + openFDA). Cached per query; debounced; re-renders on arrival. */
+const externalCache = new Map();
+let externalTimer = null;
+
+function scheduleExternalLookup(query, rerender) {
+  clearTimeout(externalTimer);
+  externalTimer = setTimeout(async () => {
+    try {
+      const response = await fetch(`/api/drug?name=${encodeURIComponent(query)}`);
+      const info = await response.json();
+      externalCache.set(query, info.found ? info : null);
+    } catch (err) {
+      externalCache.set(query, null);
+    }
+    rerender();
+  }, 450);
+}
+
+/* Renders the card for an FDA-label lookup result. */
+function externalMedCard(info, query) {
+  const field = (label, value) => value ? `
+    <div><div class="detail-label">${label}</div>
+    <div class="detail-value">${highlight(value, query)}</div></div>` : "";
+  return `
+    <div class="card medinfo medinfo-external">
+      <div class="medinfo-head">
+        <span class="medinfo-name">${highlight(info.generic_name, query)}</span>
+        ${info.brand_name ? `<span class="med-brand">${highlight(info.brand_name, query)}</span>` : ""}
+        <span class="row-spacer"></span>
+        ${info.drug_class ? `<span class="chip chip-plain">${highlight(info.drug_class, query)}</span>` : ""}
+        <span class="chip chip-ok">FDA label</span>
+      </div>
+      ${info.mechanism ? `<p class="medinfo-mechanism"><strong>How it works.</strong> ${highlight(info.mechanism, query)}</p>` : ""}
+      <div class="detail-grid">
+        ${field("Approved to treat", info.approved_uses)}
+        ${field("Drug interactions", info.interactions)}
+        ${field("Contraindications", info.contraindications)}
+        ${field("Pediatric use", info.pediatric_use)}
+      </div>
+      <div class="medinfo-source">${esc(info.source)} &middot;
+        <a href="${esc(info.dailymed_url)}" target="_blank" rel="noopener noreferrer">Full label on DailyMed</a>
+      </div>
+    </div>`;
+}
+
+/* Returns the external-lookup section when the search names a drug the
+   family data cannot answer: a card once fetched, a hint while fetching. */
+function externalMedSection(events, query, rerender) {
+  if (!query || query.length < 4) return "";
+  if (matchingMedications(events, query).length) return "";
+  if (externalCache.has(query)) {
+    const info = externalCache.get(query);
+    if (!info) return "";
+    return `<h2 class="section-title">From the FDA label database</h2>${externalMedCard(info, query)}`;
+  }
+  scheduleExternalLookup(query, rerender);
+  return `<p class="external-hint">Checking the FDA label database&hellip;</p>`;
+}
+
 /* Fetches the evaluated queue once. Returns {events, summary, stats}. */
 async function loadPayload() {
   const response = await fetch("/api/events?count=100");
