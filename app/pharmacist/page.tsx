@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Navigation } from "../nav";
 
 const masterQueue = [
@@ -9,16 +9,26 @@ const masterQueue = [
 ];
 
 export default function PharmacistView() {
-  const [search, setSearch] = useState("");
+  const [filtered, setFiltered] = useState(masterQueue);
   const [selected, setSelected] = useState<any>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return masterQueue.filter(ev => 
-      ev.patient.toLowerCase().includes(q) || ev.generic.toLowerCase().includes(q) || 
-      ev.brand.toLowerCase().includes(q) || ev.schedule.toLowerCase().includes(q)
-    );
-  }, [search]);
+  useEffect(() => {
+    const searchInput = document.getElementById("search-input") as HTMLInputElement;
+    const handleInput = (e: Event) => {
+      const q = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      const results = masterQueue.filter(ev => 
+        ev.patient.toLowerCase().includes(q) || 
+        ev.generic.toLowerCase().includes(q) || 
+        ev.brand.toLowerCase().includes(q) || 
+        ev.schedule.toLowerCase().includes(q) ||
+        ev.indication.toLowerCase().includes(q)
+      );
+      setFiltered(results);
+    };
+
+    if (searchInput) searchInput.addEventListener("input", handleInput);
+    return () => { if (searchInput) searchInput.removeEventListener("input", handleInput); };
+  }, []);
 
   const totalFlagged = filtered.filter(e => e.warnings.length > 0).length;
 
@@ -29,10 +39,9 @@ export default function PharmacistView() {
         <h1 className="text-4xl font-semibold tracking-tight text-center mb-8">Second Look Triage</h1>
         
         <input 
+          id="search-input"
           type="text" 
           placeholder="Spotlight search: patient, medication, or schedule..." 
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
           className="w-full border border-[#d2d2d7] rounded-[16px] px-6 py-4 text-lg shadow-sm focus:outline-none focus:border-[#0071e3] transition-all" 
           autoComplete="off" 
         />

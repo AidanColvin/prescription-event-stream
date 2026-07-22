@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { Navigation } from "./nav";
 
 const masterData = [
@@ -9,17 +9,32 @@ const masterData = [
 ];
 
 export default function PatientView() {
-  const [search, setSearch] = useState("");
+  const [filtered, setFiltered] = useState(masterData);
   const [selected, setSelected] = useState<typeof masterData[0] | null>(null);
 
-  const filtered = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    return masterData.filter(ev => 
-      ev.patient.toLowerCase().includes(q) || ev.generic.toLowerCase().includes(q) || 
-      ev.brand.toLowerCase().includes(q) || ev.schedule.toLowerCase().includes(q) || 
-      ev.indication.toLowerCase().includes(q)
-    );
-  }, [search]);
+  useEffect(() => {
+    const searchInput = document.getElementById("search-input") as HTMLInputElement;
+    const handleInput = (e: Event) => {
+      const q = (e.target as HTMLInputElement).value.toLowerCase().trim();
+      const results = masterData.filter(ev => 
+        ev.patient.toLowerCase().includes(q) || 
+        ev.generic.toLowerCase().includes(q) || 
+        ev.brand.toLowerCase().includes(q) || 
+        ev.schedule.toLowerCase().includes(q) || 
+        ev.indication.toLowerCase().includes(q)
+      );
+      setFiltered(results);
+    };
+    
+    if (searchInput) {
+      searchInput.addEventListener("input", handleInput);
+    }
+    return () => {
+      if (searchInput) {
+        searchInput.removeEventListener("input", handleInput);
+      }
+    };
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f5f5f7] text-[#1d1d1f] p-4 sm:p-8" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif' }}>
@@ -28,10 +43,9 @@ export default function PatientView() {
         <h1 className="text-4xl font-semibold tracking-tight text-center mb-8">Medicine Cabinet</h1>
         
         <input 
+          id="search-input"
           type="text" 
           placeholder="Spotlight search: medication, brand, patient..." 
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
           className="w-full border border-[#d2d2d7] rounded-[16px] px-6 py-4 text-lg shadow-sm focus:outline-none focus:border-[#0071e3] transition-all" 
           autoComplete="off" 
         />
