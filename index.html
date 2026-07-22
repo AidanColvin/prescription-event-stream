@@ -1,486 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prescription Event Stream</title>
-    <style>
-        :root {
-            --bg-color: #f5f5f7;
-            --card-bg: #ffffff;
-            --text-primary: #1d1d1f;
-            --text-secondary: #86868b;
-            --accent: #0071e3;
-            --border: #d2d2d7;
-            --badge-red-bg: #ffebee;
-            --badge-red-text: #c62828;
-            --badge-green-bg: #e8f5e9;
-            --badge-green-text: #2e7d32;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            -webkit-font-smoothing: antialiased;
-        }
-        .container {
-            width: 100%;
-            max-width: 1100px;
-        }
-        nav {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(20px);
-            padding: 8px;
-            border-radius: 99px;
-            border: 1px solid rgba(0,0,0,0.04);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-        }
-        nav button {
-            background: transparent;
-            border: none;
-            padding: 8px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            border-radius: 99px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        nav button.active {
-            background: var(--text-primary);
-            color: #ffffff;
-        }
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #34c759;
-            background: rgba(52, 199, 89, 0.1);
-            padding: 4px 12px;
-            border-radius: 20px;
-            margin-bottom: 12px;
-        }
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background-color: #34c759;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        h1 {
-            font-size: 32px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            margin: 0 0 6px 0;
-        }
-        p.subtitle {
-            font-size: 16px;
-            color: var(--text-secondary);
-            margin: 0;
-        }
-        .controls-row {
-            display: flex;
-            gap: 16px;
-            max-width: 800px;
-            margin: 0 auto 30px auto;
-            align-items: center;
-            width: 100%;
-        }
-        .search-bar {
-            flex: 1;
-            padding: 14px 20px;
-            font-size: 16px;
-            border-radius: 99px;
-            border: 1px solid var(--border);
-            outline: none;
-            background: #ffffff;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-            transition: all 0.2s;
-        }
-        .search-bar:focus {
-            border-color: var(--accent);
-            box-shadow: 0 4px 15px rgba(0,113,227,0.1);
-        }
-        .profile-select {
-            padding: 14px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            border-radius: 99px;
-            border: 1px solid var(--border);
-            outline: none;
-            background: #ffffff;
-            color: var(--text-primary);
-            cursor: pointer;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02);
-        }
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-            border: 1px solid rgba(0,0,0,0.04);
-        }
-        .stat-value {
-            font-size: 32px;
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            margin-bottom: 4px;
-            transition: color 0.2s;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .table-container {
-            background: var(--card-bg);
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-            border: 1px solid rgba(0,0,0,0.04);
-            overflow: hidden;
-            display: none;
-        }
-        .table-container.active {
-            display: block;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 14px;
-        }
-        th {
-            background: #fafafa;
-            color: var(--text-secondary);
-            font-weight: 500;
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-        }
-        td {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--border);
-            color: var(--text-primary);
-        }
-        tr:last-child td { border-bottom: none; }
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .badge-review { background: var(--badge-red-bg); color: var(--badge-red-text); }
-        .badge-standard { background: var(--badge-green-bg); color: var(--badge-green-text); }
-        .how-it-works {
-            background: var(--card-bg);
-            border-radius: 16px;
-            padding: 40px;
-            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
-            border: 1px solid rgba(0,0,0,0.04);
-            display: none;
-            line-height: 1.6;
-        }
-        .how-it-works.active { display: block; }
-        .how-it-works h2 { font-size: 24px; margin-top: 0; }
-        .github-link {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--text-primary);
-            color: #fff;
-            padding: 12px 24px;
-            border-radius: 99px;
-            text-decoration: none;
-            font-weight: 500;
-            margin-top: 20px;
-            transition: opacity 0.2s;
-        }
-        .github-link:hover { opacity: 0.8; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medicine Cabinet — Prescription Event Stream</title>
+  <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
-    <div class="container">
-        <nav>
-            <button id="nav-patient" class="active" onclick="switchView('patient')">Patient / Parent</button>
-            <button id="nav-pharmacist" onclick="switchView('pharmacist')">Pharmacist</button>
-            <button id="nav-md" onclick="switchView('md')">MD View</button>
-            <button id="nav-how" onclick="switchView('how')">How It Works & GitHub</button>
-        </nav>
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a href="/" class="active" aria-current="page">Patient</a>
+      <a href="/pharmacist">Pharmacist</a>
+      <a href="/md">MD</a>
+      <a href="/how-it-works">How It Works</a>
+    </nav>
+  </div>
 
-        <header>
-            <div class="status-badge"><div class="status-dot"></div><span>SECURE U.S. CLINICAL STREAM</span></div>
-            <h1 id="view-title">Patient Medication Portal</h1>
-            <p class="subtitle" id="view-subtitle">Plain-English medication guidance, refill tracking, and safety compliance.</p>
-        </header>
+  <div class="container">
+    <header class="page">
+      <p class="data-notice" id="data-notice">Synthetic demonstration data. No real patients.</p>
+      <h1>Medicine Cabinet</h1>
+      <p class="subtitle">Every medication in your family, in plain English.</p>
+      <p class="status-line" id="status-line"></p>
+    </header>
 
-        <div class="controls-row" id="controls-row">
-            <!-- Explicitly declared input ready for JavaScript DOM binding -->
-            <input type="text" id="search-input" class="search-bar" placeholder="Spotlight search: medication, brand, patient, schedule, or condition..." autocomplete="off">
-            <select id="profile-select" class="profile-select">
-                <option value="all">All Family Profiles</option>
-                <option value="Patricia Johnson">Patricia Johnson</option>
-                <option value="Mary Smith">Mary Smith</option>
-                <option value="James Smith">James Smith</option>
-            </select>
-        </div>
-
-        <div class="stats-grid" id="stats-container">
-            <div class="stat-card">
-                <div class="stat-value" id="stat-total" style="color: var(--accent);">--</div>
-                <div class="stat-label">Active Events</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-large">--</div>
-                <div class="stat-label">Compliance Flags</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value" id="stat-avg">--</div>
-                <div class="stat-label">Average Qty</div>
-            </div>
-        </div>
-
-        <!-- Patient View Table -->
-        <div id="table-patient" class="table-container active">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Patient Profile</th>
-                        <th>Medication (Generic / Brand)</th>
-                        <th>What It Treats</th>
-                        <th>Directions (Sig)</th>
-                        <th>Refill Timing</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-patient"><tr><td colspan="5" style="text-align:center; padding:40px;">Loading data stream...</td></tr></tbody>
-            </table>
-        </div>
-
-        <!-- Pharmacist View Table -->
-        <div id="table-pharmacist" class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Patient & Rx ID</th>
-                        <th>Medication (Generic / Brand)</th>
-                        <th>DEA Schedule</th>
-                        <th>Quantity & Refills</th>
-                        <th>Compliance Status</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-pharmacist"></tbody>
-            </table>
-        </div>
-
-        <!-- MD View Table -->
-        <div id="table-md" class="table-container">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Patient Name</th>
-                        <th>Prescribed Regimen (Generic / Brand)</th>
-                        <th>Adherence</th>
-                        <th>Drug Interactions & Warnings</th>
-                        <th>Prescriber & DEA</th>
-                    </tr>
-                </thead>
-                <tbody id="tbody-md"></tbody>
-            </table>
-        </div>
-
-        <!-- How It Works & GitHub -->
-        <div id="view-how" class="how-it-works">
-            <h2>Architecture & U.S. Compliance Standards</h2>
-            <p>This application simulates and streams real-time prescription refill events using a Python serverless backend deployed on Vercel, paired with an Apple-inspired minimalist frontend designed for zero friction.</p>
-            <h3>Authoritative U.S. Data Sources</h3>
-            <ul>
-                <li><strong>FDA & Drugs@FDA:</strong> Real-time regulatory approvals, indications, and safety communications.</li>
-                <li><strong>DailyMed (NIH / NLM):</strong> Official Structured Product Labeling (SPL) and package inserts.</li>
-                <li><strong>AHFS & PDR:</strong> Clinical compendia for therapeutic guidelines, off-label uses, and drug interactions.</li>
-            </ul>
-            <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" class="github-link">
-                View Repository on GitHub
-            </a>
-        </div>
+    <div class="controls">
+      <input type="text" id="search-input" class="search" autocomplete="off"
+             placeholder="Search a medication, person, or condition&hellip;"
+             aria-label="Search medications">
+      <select id="profile-select" class="select" aria-label="Filter by family member">
+        <option value="all">Whole family</option>
+      </select>
     </div>
+    <p class="search-hint">Press <kbd>/</kbd> to search &middot; click any medication for details</p>
 
-    <script>
-        let globalData = { events: [], stats: { total: 0, large_refills: 0, avg_quantity: 0 } };
-        let currentView = 'patient';
+    <main id="content"><div class="empty-state">Loading your medicine cabinet&hellip;</div></main>
 
-        async function fetchEvents() {
-            try {
-                const response = await fetch('/api/events');
-                if (!response.ok) throw new Error('Network response failed');
-                globalData = await response.json();
-                renderData();
-            } catch (err) {
-                console.error("Stream connection error:", err);
-            }
-        }
+    <footer class="page">
+      <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://github.com/AidanColvin/prescription-event-stream/issues" target="_blank" rel="noopener noreferrer">Report a problem with this data</a>
+    </footer>
+  </div>
 
-        function switchView(view) {
-            currentView = view;
-            ['patient', 'pharmacist', 'md', 'how'].forEach(v => {
-                document.getElementById(`nav-${v}`).classList.remove('active');
-                const tbl = document.getElementById(`table-${v}`);
-                if (tbl) tbl.classList.remove('active');
-            });
-            document.getElementById(`nav-${view}`).classList.add('active');
-            
-            const controlsRow = document.getElementById('controls-row');
-            const statsGrid = document.getElementById('stats-container');
-            const howView = document.getElementById('view-how');
-            const profileSelect = document.getElementById('profile-select');
+  <script src="/assets/app.js"></script>
+  <script>
+    let events = [];
+    let query = "";
+    let profile = "all";
+    const openRows = new Set();
 
-            if (view === 'how') {
-                controlsRow.style.display = 'none';
-                statsGrid.style.display = 'none';
-                howView.classList.add('active');
-                document.getElementById('view-title').textContent = 'How It Works';
-                document.getElementById('view-subtitle').textContent = 'System architecture, regulatory sources, and repository access.';
-            } else {
-                controlsRow.style.display = 'flex';
-                statsGrid.style.display = 'grid';
-                howView.classList.remove('active');
-                document.getElementById(`table-${view}`).classList.add('active');
-                
-                if (view === 'patient') {
-                    profileSelect.style.display = 'block';
-                    document.getElementById('view-title').textContent = 'Patient & Parent Medication Portal';
-                    document.getElementById('view-subtitle').textContent = 'Plain-English medication guidance, safe storage, and exact refill countdowns.';
-                } else if (view === 'pharmacist') {
-                    profileSelect.style.display = 'none';
-                    document.getElementById('view-title').textContent = 'Pharmacist Compliance Queue';
-                    document.getElementById('view-subtitle').textContent = 'High-volume tracking, DEA schedule verification, and dispensing compliance.';
-                } else if (view === 'md') {
-                    profileSelect.style.display = 'none';
-                    document.getElementById('view-title').textContent = 'Physician Clinical Safety Profile';
-                    document.getElementById('view-subtitle').textContent = 'Patient adherence tracking, automated drug interactions, and contraindications.';
-                }
-            }
-            renderData();
-        }
+    /* Takes an ISO date of birth and returns whole years. */
+    function ageFromDob(dob) {
+      const born = new Date(dob + "T00:00:00");
+      if (isNaN(born)) return null;
+      const now = new Date();
+      let years = now.getFullYear() - born.getFullYear();
+      const beforeBirthday =
+        now.getMonth() < born.getMonth() ||
+        (now.getMonth() === born.getMonth() && now.getDate() < born.getDate());
+      return beforeBirthday ? years - 1 : years;
+    }
 
-        function renderData() {
-            if (currentView === 'how') return;
+    /* Returns the refill chip for one prescription. */
+    function refillChip(ev) {
+      if (ev.severity !== "clear") return '<span class="chip chip-stop">Paused</span>';
+      const days = parseInt(ev.next_refill_due, 10);
+      if (ev.refills_remaining === 0 && isNaN(days))
+        return `<span class="chip chip-plain">${esc(ev.next_refill_due)}</span>`;
+      if (!isNaN(days) && days <= 7)
+        return `<span class="chip chip-soon">Refill due in ${days} day${days === 1 ? "" : "s"}</span>`;
+      return `<span class="chip chip-ok">Due in ${esc(ev.next_refill_due)}</span>`;
+    }
 
-            const searchInput = document.getElementById('search-input');
-            const query = (searchInput.value || '').toLowerCase().trim();
-            const selectedProfile = document.getElementById('profile-select').value;
+    /* Renders one medication row, expandable to full detail. */
+    function medRow(ev) {
+      const open = openRows.has(ev.event_id) ? " open" : "";
+      const finding = (ev.findings || [])[0];
+      const paused = ev.severity !== "clear" && finding ? `
+        <div class="paused-note"><strong>Paused by the pharmacy.</strong>
+          ${esc(finding.patient_message)}</div>` : "";
+      return `
+        <div class="med-row${open}" data-id="${esc(ev.event_id)}" role="button" tabindex="0"
+             aria-expanded="${open ? "true" : "false"}">
+          <div class="row-top">
+            <span class="med-name">${highlight(ev.medication, query)}</span>
+            <span class="med-brand">${highlight(ev.brand, query)}</span>
+            <span class="row-spacer"></span>
+            ${refillChip(ev)}
+            <span class="chevron">&#8250;</span>
+          </div>
+          <div class="row-sub">Treats ${highlight(ev.indication.toLowerCase(), query)} &middot; ${esc(ev.sig)}</div>
+          ${paused}
+          <div class="row-detail">
+            <div class="detail-grid">
+              <div><div class="detail-label">Strength</div><div class="detail-value">${esc(ev.strength)} ${esc(ev.form)}</div></div>
+              <div><div class="detail-label">Quantity per fill</div><div class="detail-value">${esc(ev.quantity)}</div></div>
+              <div><div class="detail-label">Refills left</div><div class="detail-value">${esc(ev.refills_remaining)}</div></div>
+              <div><div class="detail-label">Prescribed by</div><div class="detail-value">${highlight(ev.prescriber, query)}</div></div>
+              <div><div class="detail-label">Possible side effects</div><div class="detail-value">${esc(ev.side_effects)}</div></div>
+              <div><div class="detail-label">How to store it</div><div class="detail-value">${esc(ev.storage)}</div></div>
+              <div><div class="detail-label">Avoid mixing with</div><div class="detail-value">${highlight(ev.interactions, query)}</div></div>
+              <div><div class="detail-label">Not for people with</div><div class="detail-value">${esc(ev.contraindications)}</div></div>
+            </div>
+          </div>
+        </div>`;
+    }
 
-            // Universal live search filtering logic evaluating both Generic and Brand names
-            const filtered = globalData.events.filter(ev => {
-                const pat = (ev.patient || '').toLowerCase();
-                const med = (ev.medication || '').toLowerCase();
-                const brand = (ev.brand || '').toLowerCase();
-                const sched = (ev.dea_schedule || '').toLowerCase();
-                const ind = (ev.indication || '').toLowerCase();
-                const inter = (ev.interactions || '').toLowerCase();
-                
-                const matchesSearch = pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query) || inter.includes(query);
-                const matchesProfile = (currentView !== 'patient' || selectedProfile === 'all' || ev.patient === selectedProfile);
-                
-                return matchesSearch && matchesProfile;
-            });
+    function render() {
+      const container = document.getElementById("content");
+      const visible = events.filter((ev) =>
+        matchesQuery(ev, query) && (profile === "all" || ev.patient === profile));
 
-            // Dynamically recalculate macro summary cards for total synchronization
-            const totalActive = filtered.length;
-            const largeRefills = filtered.filter(e => e.quantity > 60).length;
-            const qtySum = filtered.reduce((acc, curr) => acc + curr.quantity, 0);
-            const avgQty = totalActive > 0 ? Math.round(qtySum / totalActive) : 0;
+      const paused = events.filter((ev) => ev.severity !== "clear").length;
+      document.getElementById("status-line").innerHTML = paused
+        ? `<strong>${paused} prescription${paused === 1 ? "" : "s"}</strong> need${paused === 1 ? "s" : ""} your attention. Everything else is on track.`
+        : "Everything is on track.";
 
-            document.getElementById('stat-total').textContent = totalActive;
-            document.getElementById('stat-large').textContent = largeRefills;
-            document.getElementById('stat-avg').textContent = avgQty;
+      if (!visible.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p class="big">No medications match.</p>
+            <p>Try a generic name like &ldquo;zolpidem&rdquo;, a brand like &ldquo;Ambien&rdquo;, or a condition like &ldquo;asthma&rdquo;.</p>
+          </div>`;
+        return;
+      }
 
-            const emptyStateHTML = `<tr><td colspan="5" style="text-align:center; padding:60px 20px; color:var(--text-secondary); font-size:16px;">No matching medications, patients, or schedules found.</td></tr>`;
+      /* Group by person; anyone with a paused prescription lists first. */
+      const byPerson = new Map();
+      for (const ev of visible) {
+        if (!byPerson.has(ev.patient)) byPerson.set(ev.patient, []);
+        byPerson.get(ev.patient).push(ev);
+      }
+      const people = [...byPerson.entries()].sort((a, b) => {
+        const flagged = (list) => list.some((e) => e.severity !== "clear") ? 0 : 1;
+        return flagged(a[1]) - flagged(b[1]) || a[0].localeCompare(b[0]);
+      });
 
-            if (currentView === 'patient') {
-                const tbody = document.getElementById('tbody-patient');
-                tbody.innerHTML = filtered.length ? '' : emptyStateHTML;
-                filtered.forEach(ev => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${ev.patient}</strong><br><span style="font-size:12px; color:var(--text-secondary);">DOB: ${ev.dob}</span></td>
-                        <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="color:var(--accent); font-size:12px;">Strength: ${ev.strength} (${ev.form})</span></td>
-                        <td>${ev.indication}<br><span style="font-size:12px; color:var(--text-secondary);">Off-label: ${ev.off_label}</span></td>
-                        <td style="font-weight:500;">${ev.sig}</td>
-                        <td><span style="color:${ev.next_refill_due.includes('1 ') ? '#c62828' : '#0071e3'}; font-weight:600;">Due in: ${ev.next_refill_due}</span><br><span style="font-size:12px; color:var(--text-secondary);">${ev.refills_remaining} Total Refills Left</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } else if (currentView === 'pharmacist') {
-                const tbody = document.getElementById('tbody-pharmacist');
-                tbody.innerHTML = filtered.length ? '' : emptyStateHTML;
-                filtered.forEach(ev => {
-                    const tr = document.createElement('tr');
-                    const badgeClass = ev.high_volume === 'Review Required' ? 'badge-review' : 'badge-standard';
-                    const schedColor = ev.dea_schedule.includes('II') ? '#c62828' : (ev.dea_schedule.includes('Non') ? '#2e7d32' : '#1d1d1f');
-                    tr.innerHTML = `
-                        <td><strong>${ev.patient}</strong><br><span style="font-family:monospace; font-size:12px; color:var(--text-secondary);">${ev.event_id}</span></td>
-                        <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="font-size:12px; color:var(--text-secondary);">${ev.strength} ${ev.form}</span></td>
-                        <td><span style="font-weight:600; color:${schedColor};">${ev.dea_schedule}</span></td>
-                        <td>Qty: <strong>${ev.quantity}</strong><br><span style="font-size:12px; color:var(--text-secondary);">Refills: ${ev.refills_remaining}</span></td>
-                        <td><span class="badge ${badgeClass}">${ev.high_volume}</span><br><span style="font-size:11px; color:var(--text-secondary);">Source: ${ev.source}</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            } else if (currentView === 'md') {
-                const tbody = document.getElementById('tbody-md');
-                tbody.innerHTML = filtered.length ? '' : emptyStateHTML;
-                filtered.forEach(ev => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><strong>${ev.patient}</strong><br><span style="font-size:12px; color:var(--text-secondary);">Phone: ${ev.phone}</span></td>
-                        <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="font-size:12px; color:var(--text-secondary);">${ev.strength} ${ev.form} — Sig: ${ev.sig}</span></td>
-                        <td><span style="font-weight:600; color: ${parseInt(ev.adherence_score) < 85 ? '#c62828' : '#2e7d32'};">${ev.adherence_score}</span></td>
-                        <td><span style="color:#c62828; font-size:12px; font-weight:500;">Interactions: ${ev.interactions}</span><br><span style="font-size:12px; color:var(--text-secondary);">Contra: ${ev.contraindications}</span></td>
-                        <td>${ev.prescriber}<br><span style="font-size:12px; color:var(--text-secondary);">DEA: ${ev.dea}</span></td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-        }
-
-        // Explicit DOM Binding for flawless Spotlight-style live execution
-        document.addEventListener('DOMContentLoaded', () => {
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                searchInput.addEventListener('input', renderData);
-            }
-            
-            const profileSelect = document.getElementById('profile-select');
-            if (profileSelect) {
-                profileSelect.addEventListener('change', renderData);
-            }
-            
-            fetchEvents();
-            setInterval(fetchEvents, 5000);
+      container.innerHTML = people.map(([name, list]) => {
+        list.sort((a, b) => {
+          const urgency = (e) => e.severity !== "clear" ? -1 : (parseInt(e.next_refill_due, 10) || 999);
+          return urgency(a) - urgency(b);
         });
-    </script>
+        const age = ageFromDob(list[0].dob);
+        return `
+          <h2 class="section-title">${highlight(name, query)}${age !== null ? `, ${age}` : ""}
+            &middot; ${list.length} medication${list.length === 1 ? "" : "s"}</h2>
+          <div class="card">${list.map(medRow).join("")}</div>`;
+      }).join("");
+
+      container.querySelectorAll(".med-row").forEach((row) => {
+        const toggle = () => {
+          const id = row.dataset.id;
+          openRows.has(id) ? openRows.delete(id) : openRows.add(id);
+          row.classList.toggle("open");
+          row.setAttribute("aria-expanded", row.classList.contains("open"));
+        };
+        row.addEventListener("click", toggle);
+        row.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+        });
+      });
+    }
+
+    async function init() {
+      const searchInput = document.getElementById("search-input");
+      const profileSelect = document.getElementById("profile-select");
+      bindSearch(searchInput, (value) => { query = value; render(); });
+      profileSelect.addEventListener("change", () => { profile = profileSelect.value; render(); });
+
+      try {
+        const payload = await loadPayload();
+        events = payload.events;
+        for (const name of [...new Set(events.map((e) => e.patient))].sort()) {
+          const option = document.createElement("option");
+          option.value = name;
+          option.textContent = name;
+          profileSelect.appendChild(option);
+        }
+        render();
+      } catch (err) {
+        console.error("Stream connection error:", err);
+        renderLoadError(document.getElementById("content"));
+      }
+    }
+
+    init();
+  </script>
 </body>
 </html>

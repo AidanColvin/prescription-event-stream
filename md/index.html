@@ -1,78 +1,174 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Physician Terminal</title>
-  <style>
-    :root { --bg: #f5f5f7; --card: #ffffff; --text-main: #1d1d1f; --text-muted: #86868b; --border: #e5e5ea; }
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; margin: 0; background: var(--bg); color: var(--text-main); }
-    .nav { display: flex; justify-content: center; gap: 20px; padding: 20px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-    .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
-    .nav a.active { background: var(--text-main); color: #fff; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
-    input[type="search"] { width: 100%; max-width: 440px; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 16px; outline: none; margin: 0 auto 30px; display: block; }
-    .table-container { background: var(--card); border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
-    th { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
-    .row { cursor: pointer; transition: background 0.2s; }
-    .row:hover { background: #fafafc; }
-    .details { display: none; background: #fafafc; }
-    .details.active { display: table-row; }
-    .details td { padding: 24px; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-    .value { font-size: 14px; font-weight: 500; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinical Safety Profile — Prescription Event Stream</title>
+  <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
-  <nav class="nav">
-    <a href="/">Patient</a>
-    <a href="/pharmacist">Pharmacist</a>
-    <a href="/md" class="active">MD</a>
-  </nav>
-  <div class="container">
-    <h1 style="text-align:center; margin-bottom: 30px;">Clinical Safety Profile</h1>
-    <input type="search" id="search" placeholder="Search patient or medication..." oninput="render()" />
-    <div class="table-container">
-      <table>
-        <thead><tr><th>Patient</th><th>Medication</th><th>Indication</th></tr></thead>
-        <tbody id="list"></tbody>
-      </table>
-    </div>
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a href="/">Patient</a>
+      <a href="/pharmacist">Pharmacist</a>
+      <a href="/md" class="active" aria-current="page">MD</a>
+      <a href="/how-it-works">How It Works</a>
+    </nav>
   </div>
+
+  <div class="container">
+    <header class="page">
+      <p class="data-notice" id="data-notice">Synthetic demonstration data. No real patients.</p>
+      <h1>Clinical Safety Profile</h1>
+      <p class="subtitle">Your panel, with the pharmacy&rsquo;s findings attached.</p>
+      <p class="status-line" id="panel-line"></p>
+    </header>
+
+    <div class="controls">
+      <input type="text" id="search-input" class="search" autocomplete="off"
+             placeholder="Search patient, medication, or prescriber&hellip;" aria-label="Search the panel">
+    </div>
+    <p class="search-hint">Press <kbd>/</kbd> to search &middot; click any row for interactions and contraindications</p>
+
+    <main id="content"><div class="empty-state">Loading the panel&hellip;</div></main>
+
+    <footer class="page">
+      <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://github.com/AidanColvin/prescription-event-stream/issues" target="_blank" rel="noopener noreferrer">Report a problem with this data</a>
+    </footer>
+  </div>
+
+  <script src="/assets/app.js"></script>
   <script>
     let events = [];
-    let expanded = null;
-    async function load() {
-      if (document.getElementById('search').value || expanded) return;
-      const res = await fetch(`/api/events?count=15&t=${Date.now()}`);
-      events = (await res.json()).events;
-      render();
+    let query = "";
+    const openRows = new Set();
+
+    /* Takes an ISO date of birth and returns whole years. */
+    function ageFromDob(dob) {
+      const born = new Date(dob + "T00:00:00");
+      if (isNaN(born)) return null;
+      const now = new Date();
+      let years = now.getFullYear() - born.getFullYear();
+      const beforeBirthday =
+        now.getMonth() < born.getMonth() ||
+        (now.getMonth() === born.getMonth() && now.getDate() < born.getDate());
+      return beforeBirthday ? years - 1 : years;
     }
-    function toggle(id) { expanded = expanded === id ? null : id; render(); }
-    function render() {
-      const term = document.getElementById('search').value.toLowerCase();
-      const filtered = events.filter(e => e.medication.toLowerCase().includes(term) || e.patient_data.name.toLowerCase().includes(term));
-      document.getElementById('list').innerHTML = filtered.map(e => `
-        <tr class="row" onclick="toggle('${e.event_id}')">
-          <td style="font-weight: 600;">${e.patient_data.name}</td>
-          <td style="font-weight: 600;">${e.medication}</td>
-          <td>${e.indication}</td>
+
+    /* Renders the DEA registration verdict, not just the number. */
+    function deaCell(ev) {
+      const map = {
+        valid: `<span class="chip chip-ok">&#10003; ${esc(ev.dea)}</span>`,
+        invalid: `<span class="chip chip-stop">&#10007; ${esc(ev.dea)} fails checksum</span>`,
+        missing: `<span class="chip chip-stop">&#10007; None on file</span>`,
+        not_required: `<span class="chip chip-plain">Not required</span>`,
+      };
+      return map[ev.dea_status] || esc(ev.dea);
+    }
+
+    /* Renders one stopped prescription as a compact alert card. */
+    function alertCard(ev) {
+      return `
+        <div class="verdict-card" style="padding:22px 26px">
+          <h2 class="verdict" style="font-size:18px">Stopped at the pharmacy.</h2>
+          <p class="verdict-sub" style="margin-bottom:0">
+            ${(ev.findings || []).map((f) => esc(f.prescriber_message)).join(" ")}
+            <span class="citation" style="display:block;margin-top:6px">
+              ${(ev.findings || []).map((f) => esc(f.citation)).join(" &middot; ")}
+            </span>
+          </p>
+        </div>`;
+    }
+
+    /* Renders one panel prescription as an expandable table row. */
+    function panelRow(ev) {
+      const open = openRows.has(ev.event_id);
+      const age = ageFromDob(ev.dob);
+      const adherence = parseInt(ev.adherence_score, 10);
+      const adherenceColor = adherence < 85 ? "var(--red)" : "var(--green)";
+      const flag = ev.severity !== "clear"
+        ? ' <span class="chip chip-stop">Stopped</span>' : "";
+      return `
+        <tr class="clickable" data-id="${esc(ev.event_id)}" aria-expanded="${open}">
+          <td><strong>${highlight(ev.patient, query)}</strong>${age !== null ? `, ${age}` : ""}${flag}<br>
+            <span style="font-size:12px;color:var(--muted)">${esc(ev.phone)}</span></td>
+          <td><strong>${highlight(ev.medication, query)} / ${highlight(ev.brand, query)}</strong><br>
+            <span style="font-size:12.5px;color:var(--muted)">${esc(ev.strength)} ${esc(ev.form)} &middot; ${esc(ev.sig)}</span></td>
+          <td style="font-weight:600;color:${adherenceColor}">${esc(ev.adherence_score)}</td>
+          <td>${highlight(ev.dea_schedule, query)}</td>
+          <td>${highlight(ev.prescriber, query)}<br>${deaCell(ev)}</td>
         </tr>
-        <tr class="details ${expanded === e.event_id ? 'active' : ''}">
-          <td colspan="3">
-            <div class="grid">
-              <div><div class="label">Patient Adherence</div><div class="value">${e.patient_data.adherence_score}</div></div>
-              <div><div class="label">Contraindications</div><div class="value" style="color:#dc2626;">${e.contraindications}</div></div>
-              <div><div class="label">Drug Interactions</div><div class="value">${e.interactions}</div></div>
+        <tr class="detail-row" data-for="${esc(ev.event_id)}" style="${open ? "" : "display:none"};background:#fafafc">
+          <td colspan="5">
+            <div class="detail-grid">
+              <div><div class="detail-label">Drug interactions</div><div class="detail-value">${highlight(ev.interactions, query)}</div></div>
+              <div><div class="detail-label">Contraindications</div><div class="detail-value">${esc(ev.contraindications)}</div></div>
+              <div><div class="detail-label">Indication</div><div class="detail-value">${highlight(ev.indication, query)}</div></div>
+              <div><div class="detail-label">Quantity / refills</div><div class="detail-value">${esc(ev.quantity)} / ${esc(ev.refills_remaining)}</div></div>
             </div>
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
     }
-    load(); setInterval(load, 5000);
+
+    function render() {
+      const container = document.getElementById("content");
+      const stopped = events.filter((ev) => ev.severity !== "clear");
+      document.getElementById("panel-line").innerHTML = stopped.length
+        ? `<strong>${stopped.length}</strong> prescription${stopped.length === 1 ? "" : "s"} from this panel ${stopped.length === 1 ? "was" : "were"} stopped at the pharmacy.`
+        : "No prescriptions from this panel were stopped.";
+
+      const visible = events.filter((ev) => matchesQuery(ev, query));
+      if (!visible.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <p class="big">No prescriptions match.</p>
+            <p>Try a patient, a generic or brand name, or a prescriber.</p>
+          </div>`;
+        return;
+      }
+
+      const stoppedVisible = visible.filter((ev) => ev.severity !== "clear");
+      const alerts = stoppedVisible.length
+        ? `<h2 class="section-title">Needs your attention</h2>${stoppedVisible.map(alertCard).join("")}`
+        : "";
+
+      container.innerHTML = `
+        ${alerts}
+        <h2 class="section-title">Full panel</h2>
+        <div class="card table-card">
+          <table>
+            <thead><tr><th>Patient</th><th>Regimen</th><th>Adherence</th><th>Schedule</th><th>Prescriber &amp; DEA</th></tr></thead>
+            <tbody>${visible.map(panelRow).join("")}</tbody>
+          </table>
+        </div>`;
+
+      container.querySelectorAll("tr.clickable").forEach((row) => {
+        row.addEventListener("click", () => {
+          const id = row.dataset.id;
+          const detail = container.querySelector(`tr.detail-row[data-for="${CSS.escape(id)}"]`);
+          const isOpen = openRows.has(id);
+          isOpen ? openRows.delete(id) : openRows.add(id);
+          detail.style.display = isOpen ? "none" : "";
+          row.setAttribute("aria-expanded", String(!isOpen));
+        });
+      });
+    }
+
+    async function init() {
+      bindSearch(document.getElementById("search-input"), (value) => { query = value; render(); });
+      try {
+        const payload = await loadPayload();
+        events = payload.events;
+        render();
+      } catch (err) {
+        console.error("Stream connection error:", err);
+        renderLoadError(document.getElementById("content"));
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>

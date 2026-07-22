@@ -1,45 +1,196 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>How It Works</title>
-  <style>
-    :root { --bg: #f5f5f7; --card: #ffffff; --text-main: #1d1d1f; --text-muted: #86868b; --border: #e5e5ea; --accent: #0071e3; }
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; margin: 0; background: var(--bg); color: var(--text-main); line-height: 1.6; }
-    .nav { display: flex; justify-content: center; gap: 20px; padding: 20px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-    .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
-    .nav a.active { background: var(--text-main); color: #fff; }
-    .container { max-width: 680px; margin: 0 auto; padding: 60px 20px; }
-    h1 { font-size: 32px; font-weight: 700; margin-bottom: 24px; text-align: center; }
-    .content-box { background: var(--card); padding: 40px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-    h2 { font-size: 20px; margin-top: 32px; margin-bottom: 12px; }
-    p { color: var(--text-muted); margin-bottom: 16px; }
-    ul { color: var(--text-muted); margin-bottom: 16px; padding-left: 20px; }
-    li { margin-bottom: 8px; }
-    .repo-link { display: inline-block; margin-top: 20px; background: var(--text-main); color: #fff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How It Works — Prescription Event Stream</title>
+  <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
-  <nav class="nav"><a href="/">Patient</a><a href="/pharmacist">Pharmacist</a><a href="/md">MD</a><a href="/how-it-works" class="active">How It Works</a></nav>
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a href="/">Patient</a>
+      <a href="/pharmacist">Pharmacist</a>
+      <a href="/md">MD</a>
+      <a href="/how-it-works" class="active" aria-current="page">How It Works</a>
+    </nav>
+  </div>
+
   <div class="container">
-    <h1>System Architecture</h1>
-    <div class="content-box">
-      <p>This system maps live prescription events to strict U.S. regulatory guidelines. It is built for absolute speed and deep simplicity.</p>
-      <h2>Data Pipeline</h2>
-      <p>Events stream through a custom Python backend deployed via Vercel Serverless Functions. The system polls for fresh data every 5 seconds. It automatically flags irregular prescription volumes and safety limits.</p>
-      <h2>Regulatory Sources</h2>
-      <p>All clinical data points map directly to established U.S. medical authorities. We pull verification from:</p>
+    <header class="page">
+      <p class="data-notice">Synthetic demonstration data. No real patients.</p>
+      <h1>How It Works</h1>
+      <p class="subtitle">One rule engine. One finding. Three surfaces.</p>
+    </header>
+
+    <div class="card prose">
+      <h2>What this is</h2>
+      <p>
+        A demo that reads a queue of simulated prescription refill events and gives every
+        prescription a second look before anyone acts on it. The server evaluates each event
+        against federal dispensing rules; the three surfaces &mdash; patient, pharmacist, and
+        prescriber &mdash; each render the same finding in the language their reader needs.
+      </p>
+
+      <figure>
+        <svg viewBox="0 0 920 470" xmlns="http://www.w3.org/2000/svg" role="img"
+             aria-label="Pipeline diagram: the event queue flows through three rules into one finding rendered on three surfaces"
+             font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M 0 1 L 9 5 L 0 9" fill="none" stroke="#86868b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+          </defs>
+
+          <!-- Queue -->
+          <rect x="20" y="170" width="180" height="120" rx="16" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="110" y="212" font-size="15" font-weight="600" fill="#1d1d1f" text-anchor="middle">Refill queue</text>
+          <text x="110" y="234" font-size="12" fill="#86868b" text-anchor="middle">16 synthetic events</text>
+          <text x="110" y="252" font-size="11.5" fill="#86868b" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">src/ingestion.py</text>
+
+          <line x1="200" y1="230" x2="248" y2="230" stroke="#86868b" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+          <!-- Rule engine -->
+          <rect x="252" y="100" width="240" height="260" rx="16" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="372" y="132" font-size="15" font-weight="600" fill="#1d1d1f" text-anchor="middle">Rule engine</text>
+          <text x="372" y="150" font-size="11.5" fill="#86868b" text-anchor="middle" font-family="ui-monospace, Menlo, monospace">src/rules/</text>
+
+          <rect x="272" y="166" width="200" height="52" rx="10" fill="#f5f5f7"/>
+          <text x="284" y="188" font-size="12.5" font-weight="600" fill="#1d1d1f">R1&#160;&#160;Pediatric minimum age</text>
+          <text x="284" y="206" font-size="11" fill="#86868b">DailyMed SPL 8.4</text>
+
+          <rect x="272" y="226" width="200" height="52" rx="10" fill="#f5f5f7"/>
+          <text x="284" y="248" font-size="12.5" font-weight="600" fill="#1d1d1f">R2&#160;&#160;Schedule refill limit</text>
+          <text x="284" y="266" font-size="11" fill="#86868b">21 CFR 1306.12, 1306.22</text>
+
+          <rect x="272" y="286" width="200" height="52" rx="10" fill="#f5f5f7"/>
+          <text x="284" y="308" font-size="12.5" font-weight="600" fill="#1d1d1f">R3&#160;&#160;DEA validity</text>
+          <text x="284" y="326" font-size="11" fill="#86868b">21 CFR 1301.13, 1306.03</text>
+
+          <line x1="492" y1="230" x2="540" y2="230" stroke="#86868b" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+          <!-- Finding -->
+          <rect x="544" y="164" width="150" height="132" rx="16" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="619" y="196" font-size="15" font-weight="600" fill="#1d1d1f" text-anchor="middle">One Finding</text>
+          <text x="619" y="220" font-size="11.5" fill="#86868b" text-anchor="middle">headline &middot; severity</text>
+          <text x="619" y="238" font-size="11.5" fill="#86868b" text-anchor="middle">citation &middot; action</text>
+          <text x="619" y="256" font-size="11.5" fill="#86868b" text-anchor="middle">three messages,</text>
+          <text x="619" y="272" font-size="11.5" fill="#86868b" text-anchor="middle">one per audience</text>
+
+          <line x1="694" y1="200" x2="742" y2="92" stroke="#86868b" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <line x1="694" y1="230" x2="742" y2="230" stroke="#86868b" stroke-width="1.6" marker-end="url(#arrow)"/>
+          <line x1="694" y1="260" x2="742" y2="368" stroke="#86868b" stroke-width="1.6" marker-end="url(#arrow)"/>
+
+          <!-- Surfaces -->
+          <rect x="746" y="40" width="154" height="96" rx="14" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="762" y="66" font-size="13" font-weight="600" fill="#1d1d1f">Patient</text>
+          <text x="762" y="86" font-size="10.5" fill="#86868b">&ldquo;Ambien is not approved</text>
+          <text x="762" y="100" font-size="10.5" fill="#86868b">for children. The pharmacy</text>
+          <text x="762" y="114" font-size="10.5" fill="#86868b">paused this prescription.&rdquo;</text>
+
+          <rect x="746" y="182" width="154" height="96" rx="14" fill="#ffffff" stroke="#c62828"/>
+          <text x="762" y="208" font-size="13" font-weight="600" fill="#c62828">Pharmacist</text>
+          <text x="762" y="230" font-size="12" font-weight="600" fill="#1d1d1f">&ldquo;Do not fill.&rdquo;</text>
+          <text x="762" y="248" font-size="10.5" fill="#86868b">Numbered findings,</text>
+          <text x="762" y="262" font-size="10.5" fill="#86868b">each with its citation.</text>
+
+          <rect x="746" y="324" width="154" height="96" rx="14" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="762" y="350" font-size="13" font-weight="600" fill="#1d1d1f">MD</text>
+          <text x="762" y="370" font-size="10.5" fill="#86868b">&ldquo;James Smith, age 11,</text>
+          <text x="762" y="384" font-size="10.5" fill="#86868b">was prescribed Ambien.</text>
+          <text x="762" y="398" font-size="10.5" fill="#86868b">Minimum age is 18.&rdquo;</text>
+        </svg>
+        <figcaption>Every event is evaluated on the server before it reaches any screen.</figcaption>
+      </figure>
+
+      <h2>The rules</h2>
+      <p>Each rule is one function that takes an event and returns a Finding or nothing.</p>
+      <div class="card table-card" style="box-shadow:none;border:1px solid var(--hairline)">
+        <table class="rule-table">
+          <thead><tr><th>Rule</th><th>Checks</th><th>Catches in this demo</th><th>Citation</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>R1</td>
+              <td>Patient age against the label minimum</td>
+              <td>An 11-year-old prescribed zolpidem, which has no pediatric indication</td>
+              <td>DailyMed SPL 8.4</td>
+            </tr>
+            <tr>
+              <td>R2</td>
+              <td>Refill count and total days supply against the schedule cap</td>
+              <td>90 tablets with 4 refills &mdash; 450 days on a Schedule&nbsp;IV window of 180</td>
+              <td>21 CFR 1306.12, 1306.22</td>
+            </tr>
+            <tr>
+              <td>R3</td>
+              <td>DEA registration presence and check digit</td>
+              <td>One prescription with no registration on file, one that fails the checksum</td>
+              <td>21 CFR 1301.13, 1306.03</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>The verdict, before and after</h2>
+      <figure>
+        <svg viewBox="0 0 920 330" xmlns="http://www.w3.org/2000/svg" role="img"
+             aria-label="Before: a table row with a Review Required sticker. After: a verdict card that says Do not fill, with reasons and citations."
+             font-family="-apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif">
+          <text x="10" y="24" font-size="12" font-weight="600" fill="#86868b" letter-spacing="0.8">BEFORE</text>
+          <rect x="10" y="34" width="900" height="64" rx="12" fill="#ffffff" stroke="#d2d2d7"/>
+          <text x="34" y="62" font-size="13.5" font-weight="600" fill="#1d1d1f">James Smith</text>
+          <text x="34" y="80" font-size="11" fill="#86868b" font-family="ui-monospace, Menlo, monospace">EVT-1001</text>
+          <text x="220" y="62" font-size="13.5" fill="#1d1d1f">Zolpidem / Ambien 10 mg</text>
+          <text x="470" y="62" font-size="13.5" fill="#1d1d1f">Schedule IV</text>
+          <text x="620" y="62" font-size="13.5" fill="#1d1d1f">Qty 90 &middot; 4 refills</text>
+          <rect x="780" y="46" width="112" height="24" rx="6" fill="#ffebee"/>
+          <text x="794" y="63" font-size="12" fill="#c62828">Review Required</text>
+          <text x="10" y="122" font-size="12.5" fill="#c62828">Review by whom, against what rule, and what happens if I do not?</text>
+
+          <text x="10" y="164" font-size="12" font-weight="600" fill="#86868b" letter-spacing="0.8">AFTER</text>
+          <rect x="10" y="174" width="900" height="140" rx="14" fill="#ffffff" stroke="#d2d2d7"/>
+          <rect x="10" y="174" width="3" height="140" fill="#c62828"/>
+          <text x="38" y="208" font-size="19" font-weight="600" fill="#1d1d1f">Do not fill.</text>
+          <text x="38" y="230" font-size="12" fill="#86868b">James Smith, EVT-1001. Zolpidem Tartrate 10 mg, quantity 90, 4 refills.</text>
+          <text x="38" y="258" font-size="12.5" font-weight="600" fill="#1d1d1f">1&#160;&#160;James Smith is 11 years old.</text>
+          <text x="58" y="274" font-size="11.5" fill="#86868b">The label establishes a minimum age of 18.&#160;&#160;&#160;DailyMed SPL 8.4</text>
+          <text x="38" y="296" font-size="12.5" font-weight="600" fill="#1d1d1f">2&#160;&#160;450 days authorized on a CIV prescription.</text>
+          <text x="58" y="311" font-size="11.5" fill="#86868b">Refills expire 180 days after the issue date.&#160;&#160;&#160;21 CFR 1306.22</text>
+        </svg>
+        <figcaption>Same data. The difference is whether the screen reaches a conclusion.</figcaption>
+      </figure>
+
+      <h2>Architecture</h2>
       <ul>
-        <li>The U.S. Food and Drug Administration (FDA) databases.</li>
-        <li>Drugs@FDA for active ingredients and indications.</li>
-        <li>The National Institutes of Health (NIH) DailyMed registry.</li>
-        <li>Clinical compendia including AHFS Drug Information and the PDR.</li>
+        <li><strong>src/ingestion.py</strong> &mdash; the deterministic synthetic roster. Same queue every request, so every count on every screen is reproducible.</li>
+        <li><strong>src/rules/</strong> &mdash; the engine. One file per rule; adding a rule means writing one function and registering it.</li>
+        <li><strong>src/transform.py</strong> &mdash; evaluates each event, attaches the findings and a computed summary. Nothing a screen shows is hardcoded.</li>
+        <li><strong>api/events.py</strong> &mdash; a Python serverless function on Vercel that serves the evaluated queue as JSON.</li>
+        <li><strong>Static pages</strong> &mdash; patient, pharmacist, and MD surfaces render the same payload with no framework and no build step.</li>
       </ul>
-      <h2>Interaction Engine</h2>
-      <p>The backend actively scans patient medication profiles for drug-drug interactions, alerting providers immediately if dangerous combinations (e.g., multiple CNS depressants) are detected.</p>
-      <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" class="repo-link">View Repository on GitHub</a>
+
+      <h2>Data honesty</h2>
+      <p>
+        The interface once carried a green badge reading &ldquo;SECURE U.S. CLINICAL STREAM.&rdquo;
+        The application uses synthetic records and makes no security claim, so the badge is gone.
+        A gray line on every page states what the data actually is.
+      </p>
+
+      <h2>Authoritative sources</h2>
+      <ul>
+        <li><strong>DailyMed (NIH/NLM)</strong> &mdash; Structured Product Labeling, including pediatric-use sections.</li>
+        <li><strong>eCFR Title 21</strong> &mdash; federal refill and registration requirements for controlled substances.</li>
+        <li><strong>Drugs@FDA</strong> &mdash; approvals and indications behind the synthetic roster.</li>
+      </ul>
+
+      <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" rel="noopener noreferrer" class="github-btn">
+        View Repository on GitHub
+      </a>
     </div>
+
+    <footer class="page">
+      <a href="https://github.com/AidanColvin/prescription-event-stream/issues" target="_blank" rel="noopener noreferrer">Report a problem with this data</a>
+    </footer>
   </div>
 </body>
 </html>

@@ -1,79 +1,182 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Pharmacist Terminal</title>
-  <style>
-    :root { --bg: #f5f5f7; --card: #ffffff; --text-main: #1d1d1f; --text-muted: #86868b; --border: #e5e5ea; }
-    * { box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; margin: 0; background: var(--bg); color: var(--text-main); }
-    .nav { display: flex; justify-content: center; gap: 20px; padding: 20px; background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
-    .nav a { text-decoration: none; color: var(--text-muted); font-weight: 500; font-size: 14px; padding: 8px 16px; border-radius: 99px; }
-    .nav a.active { background: var(--text-main); color: #fff; }
-    .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
-    input[type="search"] { width: 100%; max-width: 440px; padding: 14px 20px; border-radius: 99px; border: 1px solid var(--border); font-size: 16px; outline: none; margin: 0 auto 30px; display: block; }
-    .table-container { background: var(--card); border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); overflow: hidden; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th, td { padding: 16px 24px; border-bottom: 1px solid var(--border); }
-    th { font-size: 12px; color: var(--text-muted); text-transform: uppercase; }
-    .row { cursor: pointer; transition: background 0.2s; }
-    .row:hover { background: #fafafc; }
-    .details { display: none; background: #fafafc; }
-    .details.active { display: table-row; }
-    .details td { padding: 24px; }
-    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-    .label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
-    .value { font-size: 14px; font-weight: 500; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Second Look — Prescription Event Stream</title>
+  <link rel="stylesheet" href="/assets/app.css">
 </head>
 <body>
-  <nav class="nav">
-    <a href="/">Patient</a>
-    <a href="/pharmacist" class="active">Pharmacist</a>
-    <a href="/md">MD</a>
-  </nav>
-  <div class="container">
-    <h1 style="text-align:center; margin-bottom: 30px;">Inventory & Compliance</h1>
-    <input type="search" id="search" placeholder="Search compliance queue..." oninput="render()" />
-    <div class="table-container">
-      <table>
-        <thead><tr><th>Event ID</th><th>Medication</th><th>Qty</th><th>High Volume</th></tr></thead>
-        <tbody id="list"></tbody>
-      </table>
-    </div>
+  <div class="nav-wrap">
+    <nav class="nav" aria-label="Primary">
+      <a href="/">Patient</a>
+      <a href="/pharmacist" class="active" aria-current="page">Pharmacist</a>
+      <a href="/md">MD</a>
+      <a href="/how-it-works">How It Works</a>
+    </nav>
   </div>
+
+  <div class="container">
+    <header class="page">
+      <p class="data-notice" id="data-notice">Synthetic demonstration data. No real patients.</p>
+      <h1>Second Look</h1>
+      <p class="subtitle">Every prescription gets one.</p>
+      <p class="status-line" id="clearance-line"></p>
+    </header>
+
+    <div class="controls">
+      <input type="text" id="search-input" class="search" autocomplete="off"
+             placeholder="Search the whole queue&hellip;" aria-label="Search the queue">
+    </div>
+    <p class="search-hint">Press <kbd>/</kbd> to search &middot; search reaches cleared prescriptions too</p>
+
+    <main id="content"><div class="empty-state">Reading the queue&hellip;</div></main>
+
+    <footer class="page">
+      <a href="https://github.com/AidanColvin/prescription-event-stream" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      &nbsp;&middot;&nbsp;
+      <a href="https://github.com/AidanColvin/prescription-event-stream/issues" target="_blank" rel="noopener noreferrer">Report a problem with this data</a>
+    </footer>
+  </div>
+
+  <script src="/assets/app.js"></script>
   <script>
     let events = [];
-    let expanded = null;
-    async function load() {
-      if (document.getElementById('search').value || expanded) return;
-      const res = await fetch(`/api/events?count=15&t=${Date.now()}`);
-      events = (await res.json()).events;
-      render();
+    let query = "";
+    let clearedOpen = false;
+    const resolved = new Set();
+
+    const stopped = () => events.filter((ev) => ev.severity !== "clear" && !resolved.has(ev.event_id));
+    const cleared = () => events.filter((ev) => ev.severity === "clear" || resolved.has(ev.event_id));
+
+    /* Renders one numbered finding inside a verdict card. */
+    function findingBlock(finding, index) {
+      return `
+        <div class="finding">
+          <span class="finding-index">${index + 1}</span>
+          <div>
+            <p class="headline">${esc(finding.headline)}</p>
+            <p class="why">${esc(finding.pharmacist_message)}</p>
+            <p class="citation">${esc(finding.citation)}
+              <a href="${esc(finding.citation_url)}" target="_blank" rel="noopener noreferrer">Read the rule</a></p>
+          </div>
+        </div>`;
     }
-    function toggle(id) { expanded = expanded === id ? null : id; render(); }
+
+    /* Renders one stopped prescription as a verdict card. */
+    function verdictCard(ev) {
+      return `
+        <div class="verdict-card" data-id="${esc(ev.event_id)}">
+          <h2 class="verdict">${esc(ev.verdict)}</h2>
+          <p class="verdict-sub">${highlight(ev.patient, query)}, ${esc(ev.event_id)}.
+            ${highlight(ev.medication, query)} ${esc(ev.strength)}, quantity ${esc(ev.quantity)},
+            ${esc(ev.refills)} refill${ev.refills === 1 ? "" : "s"}.
+            Written by ${highlight(ev.prescriber, query)}.</p>
+          ${(ev.findings || []).map(findingBlock).join("")}
+          <div class="card-actions">
+            <button class="btn btn-primary" data-action="call">${esc((ev.findings[0] || {}).suggested_action || "Call the prescriber")}</button>
+            <button class="btn btn-secondary" data-action="resolve">Mark resolved</button>
+            <button class="btn btn-secondary" data-action="refuse">Document refusal</button>
+          </div>
+        </div>`;
+    }
+
+    /* Renders a cleared prescription as one compact table row. */
+    function clearedRow(ev) {
+      const deaMark = { valid: "&#10003; Valid", not_required: "&mdash;" }[ev.dea_status] || esc(ev.dea_status);
+      return `
+        <tr>
+          <td><strong>${highlight(ev.patient, query)}</strong><br>
+            <span style="font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted)">${esc(ev.event_id)}</span></td>
+          <td><strong>${highlight(ev.medication, query)} / ${highlight(ev.brand, query)}</strong><br>
+            <span style="font-size:12.5px;color:var(--muted)">${esc(ev.strength)} ${esc(ev.form)}</span></td>
+          <td>${highlight(ev.dea_schedule, query)}</td>
+          <td>Qty ${esc(ev.quantity)} &middot; ${esc(ev.refills_remaining)} refills</td>
+          <td><span class="chip ${resolved.has(ev.event_id) ? "chip-plain" : "chip-ok"}">${resolved.has(ev.event_id) ? "Resolved" : "Cleared"}</span></td>
+        </tr>`;
+    }
+
     function render() {
-      const term = document.getElementById('search').value.toLowerCase();
-      const filtered = events.filter(e => e.medication.toLowerCase().includes(term));
-      document.getElementById('list').innerHTML = filtered.map(e => `
-        <tr class="row" onclick="toggle('${e.event_id}')">
-          <td style="font-family: monospace; color: #86868b;">${e.event_id}</td>
-          <td style="font-weight: 600;">${e.medication}</td>
-          <td>${e.quantity}</td>
-          <td><span style="background: ${e.is_large_refill ? '#fee2e2' : '#e2fbd7'}; color: ${e.is_large_refill ? '#dc2626' : '#059669'}; padding: 4px 12px; border-radius: 99px; font-size: 12px; font-weight: 600;">${e.is_large_refill ? 'Review' : 'Standard'}</span></td>
-        </tr>
-        <tr class="details ${expanded === e.event_id ? 'active' : ''}">
-          <td colspan="4">
-            <div class="grid">
-              <div><div class="label">DEA Schedule</div><div class="value">${e.dea_schedule}</div></div>
-              <div><div class="label">Generic Substitution</div><div class="value">${e.substitution}</div></div>
-              <div><div class="label">Verification Source</div><div class="value" style="color:#0071e3;">${e.source}</div></div>
-            </div>
-          </td>
-        </tr>
-      `).join('');
+      const container = document.getElementById("content");
+      const read = events.length;
+      const fine = cleared().length;
+      document.getElementById("clearance-line").innerHTML =
+        `<strong>${read}</strong> prescriptions read this morning. <strong>${fine}</strong> are fine.`;
+
+      const stoppedVisible = stopped().filter((ev) => matchesQuery(ev, query));
+      const clearedVisible = cleared().filter((ev) => matchesQuery(ev, query));
+      const showCleared = clearedOpen || Boolean(query);
+
+      let html = "";
+
+      if (!stopped().length) {
+        html += `
+          <div class="empty-state queue-empty">
+            <p class="big">Nothing is waiting on you.</p>
+            <p>All ${read} prescriptions cleared every rule.</p>
+          </div>`;
+      } else if (!stoppedVisible.length && query && !clearedVisible.length) {
+        html += `
+          <div class="empty-state queue-empty">
+            <p class="big">Nothing is waiting on you.</p>
+            <p>No prescription matches &ldquo;${esc(query)}&rdquo;.</p>
+          </div>`;
+      } else {
+        html += stoppedVisible.map(verdictCard).join("");
+      }
+
+      if (clearedVisible.length && (showCleared || !stopped().length)) {
+        html += `
+          <h2 class="section-title">${query ? "Matches in the cleared queue" : "Cleared this morning"}</h2>
+          <div class="card table-card">
+            <table>
+              <thead><tr><th>Patient</th><th>Medication</th><th>Schedule</th><th>Quantity</th><th>Status</th></tr></thead>
+              <tbody>${clearedVisible.map(clearedRow).join("")}</tbody>
+            </table>
+          </div>`;
+      } else if (!query && stopped().length) {
+        html += `
+          <div style="text-align:center;margin-top:8px">
+            <button class="btn-link" id="show-cleared">${fine} cleared every rule &mdash; view them</button>
+          </div>`;
+      }
+
+      container.innerHTML = html;
+
+      const showClearedBtn = document.getElementById("show-cleared");
+      if (showClearedBtn) showClearedBtn.addEventListener("click", () => { clearedOpen = true; render(); });
+
+      container.querySelectorAll(".verdict-card").forEach((card) => {
+        const id = card.dataset.id;
+        const ev = events.find((e) => e.event_id === id);
+        card.querySelector('[data-action="call"]').addEventListener("click", () =>
+          showToast(`Calling ${ev.prescriber} about ${id}…`));
+        card.querySelector('[data-action="resolve"]').addEventListener("click", () => {
+          resolved.add(id);
+          showToast(`${id} marked resolved.`);
+          render();
+        });
+        card.querySelector('[data-action="refuse"]').addEventListener("click", () => {
+          resolved.add(id);
+          showToast(`Refusal documented for ${id}.`);
+          render();
+        });
+      });
     }
-    load(); setInterval(load, 5000);
+
+    async function init() {
+      bindSearch(document.getElementById("search-input"), (value) => { query = value; render(); });
+      try {
+        const payload = await loadPayload();
+        events = payload.events;
+        render();
+      } catch (err) {
+        console.error("Stream connection error:", err);
+        renderLoadError(document.getElementById("content"));
+      }
+    }
+
+    init();
   </script>
 </body>
 </html>

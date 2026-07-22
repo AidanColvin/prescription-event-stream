@@ -1,184 +1,295 @@
-"""Prescription refill event ingestion.
+"""Ingestion: produces the synthetic prescription refill event stream.
 
-Simulates a live clinical refill stream. Every event is generated
-deterministically (seeded per index) so the UI sees a stable dataset
-across polls — search results don't shuffle underneath the user.
-
-Medication reference fields (indication, sig, schedule, interactions)
-are modeled on public FDA / DailyMed structured product labeling.
+Every event is a plain dict. The roster is deterministic so the interface,
+the API, and the tests all see the same queue. No real patients.
 """
 
-import random
-
-DRUG_CATALOG = [
+# One family's medicine cabinet. Each entry carries everything any surface
+# (patient, pharmacist, physician) needs, so no view has to invent data.
+_ROSTER = [
     {
-        "medication": "Amoxicillin", "brand": "Amoxil", "strength": "500 mg", "form": "Capsule",
-        "indication": "Bacterial infections (ear, sinus, throat)",
-        "off_label": "H. pylori eradication (combination therapy)",
-        "sig": "Take 1 capsule by mouth every 8 hours for 10 days",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Warfarin, Methotrexate",
-        "contraindications": "Penicillin allergy",
+        # The flagship case: an eleven year old on an adult hypnotic,
+        # written for 450 authorized days. Trips R1 and R2.
+        "patient": "James Smith", "dob": "2015-02-14", "phone": "(555) 014-2231",
+        "medication": "Zolpidem Tartrate", "brand": "Ambien",
+        "strength": "10 mg", "form": "Tablet",
+        "indication": "Insomnia", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth at bedtime.",
+        "quantity": 90, "refills": 4, "refills_remaining": 4,
+        "next_refill_due": "6 days",
+        "dea_schedule": "Schedule IV",
+        "prescriber": "Dr. Sarah Jenkins, MD", "dea": "BJ8839207",
+        "adherence_score": "92%",
+        "interactions": "CNS depressants, alcohol",
+        "contraindications": "History of complex sleep behaviors",
+        "side_effects": "Drowsiness, dizziness, next-day impairment",
+        "storage": "Room temperature, out of reach of children",
+        "substitution": "Permitted", "source": "DailyMed",
     },
     {
-        "medication": "Atorvastatin", "brand": "Lipitor", "strength": "20 mg", "form": "Tablet",
-        "indication": "High cholesterol, cardiovascular risk reduction",
-        "off_label": "None commonly recognized",
-        "sig": "Take 1 tablet by mouth once daily at bedtime",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Grapefruit juice, Clarithromycin, Cyclosporine",
-        "contraindications": "Active liver disease, Pregnancy",
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Lisinopril", "brand": "Zestril",
+        "strength": "10 mg", "form": "Tablet",
+        "indication": "High blood pressure", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth once daily.",
+        "quantity": 90, "refills_remaining": 3, "next_refill_due": "24 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "97%",
+        "interactions": "Potassium supplements, NSAIDs",
+        "contraindications": "History of angioedema, pregnancy",
+        "side_effects": "Dry cough, dizziness, elevated potassium",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "Drugs@FDA",
     },
     {
-        "medication": "Lisinopril", "brand": "Zestril", "strength": "10 mg", "form": "Tablet",
-        "indication": "High blood pressure, heart failure",
-        "off_label": "Post-MI cardioprotection",
-        "sig": "Take 1 tablet by mouth once daily",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Potassium supplements, NSAIDs, Lithium",
-        "contraindications": "History of angioedema, Pregnancy",
+        "patient": "James Smith", "dob": "2015-02-14", "phone": "(555) 014-2231",
+        "medication": "Amphetamine Salts", "brand": "Adderall XR",
+        "strength": "10 mg", "form": "Capsule",
+        "indication": "ADHD", "off_label": "None documented",
+        "sig": "Take 1 capsule by mouth every morning.",
+        "quantity": 30, "refills_remaining": 0, "next_refill_due": "2 days",
+        "dea_schedule": "Schedule II",
+        "prescriber": "Dr. Sarah Jenkins, MD", "dea": "BJ8839207",
+        "adherence_score": "88%",
+        "interactions": "MAO inhibitors, serotonergic agents",
+        "contraindications": "Cardiac abnormalities, glaucoma",
+        "side_effects": "Decreased appetite, insomnia, elevated heart rate",
+        "storage": "Secure locked location",
+        "substitution": "Dispense as Written", "source": "Drugs@FDA",
     },
     {
-        "medication": "Metformin", "brand": "Glucophage", "strength": "500 mg", "form": "Tablet",
-        "indication": "Type 2 diabetes",
-        "off_label": "Polycystic ovary syndrome (PCOS)",
-        "sig": "Take 1 tablet by mouth twice daily with meals",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Iodinated contrast, Alcohol",
-        "contraindications": "Severe renal impairment (eGFR < 30)",
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Atorvastatin", "brand": "Lipitor",
+        "strength": "20 mg", "form": "Tablet",
+        "indication": "High cholesterol", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth at bedtime.",
+        "quantity": 90, "refills_remaining": 5, "next_refill_due": "31 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "95%",
+        "interactions": "Grapefruit juice, clarithromycin",
+        "contraindications": "Active liver disease",
+        "side_effects": "Muscle aches, digestive upset",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "Drugs@FDA",
     },
     {
-        "medication": "Levothyroxine", "brand": "Synthroid", "strength": "75 mcg", "form": "Tablet",
-        "indication": "Hypothyroidism",
-        "off_label": "None commonly recognized",
-        "sig": "Take 1 tablet by mouth every morning on an empty stomach",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Calcium, Iron supplements, Antacids",
-        "contraindications": "Untreated adrenal insufficiency",
+        "patient": "Mary Smith", "dob": "1978-04-12", "phone": "(555) 014-2231",
+        "medication": "Sertraline", "brand": "Zoloft",
+        "strength": "50 mg", "form": "Tablet",
+        "indication": "Anxiety and depression", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth once daily.",
+        "quantity": 30, "refills_remaining": 5, "next_refill_due": "12 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Sarah Jenkins, MD", "dea": "BJ8839207",
+        "adherence_score": "94%",
+        "interactions": "MAO inhibitors, NSAIDs, tramadol",
+        "contraindications": "Concurrent MAOI therapy",
+        "side_effects": "Nausea, insomnia, headache",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "DailyMed",
     },
     {
-        "medication": "Albuterol", "brand": "ProAir HFA", "strength": "90 mcg/actuation", "form": "Inhaler",
-        "indication": "Asthma, bronchospasm relief",
-        "off_label": "Exercise-induced bronchospasm prevention",
-        "sig": "Inhale 2 puffs by mouth every 4-6 hours as needed",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Beta-blockers, MAO inhibitors",
+        "patient": "James Smith", "dob": "2015-02-14", "phone": "(555) 014-2231",
+        "medication": "Albuterol Sulfate", "brand": "ProAir HFA",
+        "strength": "90 mcg", "form": "Inhaler",
+        "indication": "Asthma", "off_label": "None documented",
+        "sig": "Inhale 2 puffs every 4 to 6 hours as needed.",
+        "quantity": 1, "refills_remaining": 6, "next_refill_due": "45 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Emily Park, MD", "dea": "None (Non-controlled)",
+        "adherence_score": "91%",
+        "interactions": "Beta blockers",
         "contraindications": "Hypersensitivity to albuterol",
+        "side_effects": "Tremor, rapid heartbeat, nervousness",
+        "storage": "Room temperature, away from heat",
+        "substitution": "Permitted", "source": "DailyMed",
     },
     {
-        "medication": "Omeprazole", "brand": "Prilosec", "strength": "20 mg", "form": "Capsule DR",
-        "indication": "GERD, acid reflux, stomach ulcers",
-        "off_label": "Laryngopharyngeal reflux",
-        "sig": "Take 1 capsule by mouth once daily before breakfast",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Clopidogrel, Methotrexate, Diazepam",
-        "contraindications": "Concomitant rilpivirine",
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Metformin HCl", "brand": "Glucophage",
+        "strength": "500 mg", "form": "Tablet",
+        "indication": "Type 2 diabetes", "off_label": "Prediabetes",
+        "sig": "Take 1 tablet by mouth twice daily with meals.",
+        "quantity": 60, "refills_remaining": 3, "next_refill_due": "18 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "96%",
+        "interactions": "Contrast dye, excessive alcohol",
+        "contraindications": "Severe kidney impairment",
+        "side_effects": "Digestive upset, metallic taste",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "Drugs@FDA",
     },
     {
-        "medication": "Sertraline", "brand": "Zoloft", "strength": "50 mg", "form": "Tablet",
-        "indication": "Depression, anxiety disorders",
-        "off_label": "Premenstrual dysphoric disorder",
-        "sig": "Take 1 tablet by mouth once daily in the morning",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "MAO inhibitors, NSAIDs, Warfarin",
-        "contraindications": "MAOI use within 14 days, Pimozide",
+        "patient": "Mary Smith", "dob": "1978-04-12", "phone": "(555) 014-2231",
+        "medication": "Levothyroxine", "brand": "Synthroid",
+        "strength": "75 mcg", "form": "Tablet",
+        "indication": "Hypothyroidism", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth every morning on an empty stomach.",
+        "quantity": 90, "refills_remaining": 3, "next_refill_due": "27 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Sarah Jenkins, MD", "dea": "BJ8839207",
+        "adherence_score": "98%",
+        "interactions": "Calcium, iron supplements, antacids",
+        "contraindications": "Untreated adrenal insufficiency",
+        "side_effects": "Palpitations if dose too high",
+        "storage": "Room temperature, protect from light",
+        "substitution": "Dispense as Written", "source": "Drugs@FDA",
     },
     {
-        "medication": "Methylphenidate ER", "brand": "Concerta", "strength": "36 mg", "form": "Tablet ER",
-        "indication": "Attention-deficit/hyperactivity disorder (ADHD)",
-        "off_label": "Narcolepsy adjunct",
-        "sig": "Take 1 tablet by mouth every morning",
-        "dea_schedule": "Schedule II (C-II)",
-        "interactions": "MAO inhibitors, Clonidine",
-        "contraindications": "Glaucoma, Motor tics, Severe anxiety",
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Amlodipine Besylate", "brand": "Norvasc",
+        "strength": "5 mg", "form": "Tablet",
+        "indication": "High blood pressure", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth once daily.",
+        "quantity": 90, "refills_remaining": 2, "next_refill_due": "9 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "93%",
+        "interactions": "Simvastatin over 20 mg, grapefruit juice",
+        "contraindications": "Severe aortic stenosis",
+        "side_effects": "Ankle swelling, flushing",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "AHFS",
     },
     {
-        "medication": "Zolpidem", "brand": "Ambien", "strength": "10 mg", "form": "Tablet",
-        "indication": "Short-term treatment of insomnia",
-        "off_label": "None commonly recognized",
-        "sig": "Take 1 tablet by mouth at bedtime as needed",
-        "dea_schedule": "Schedule IV (C-IV)",
-        "interactions": "CNS depressants, Ketoconazole, Rifampin",
-        "contraindications": "Complex sleep behaviors history",
+        "patient": "Mary Smith", "dob": "1978-04-12", "phone": "(555) 014-2231",
+        "medication": "Tramadol HCl", "brand": "Ultram",
+        "strength": "50 mg", "form": "Tablet",
+        "indication": "Moderate pain", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth every 6 hours as needed for pain.",
+        "quantity": 40, "refills_remaining": 1, "next_refill_due": "14 days",
+        "dea_schedule": "Schedule IV",
+        # Trips R3: a Schedule IV prescription with no DEA registration on file.
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "90%",
+        "interactions": "Sertraline (serotonin syndrome risk), CNS depressants",
+        "contraindications": "Seizure disorder, concurrent SSRI caution",
+        "side_effects": "Dizziness, nausea, constipation",
+        "storage": "Secure locked location",
+        "substitution": "Permitted", "source": "DailyMed",
     },
     {
-        "medication": "Montelukast", "brand": "Singulair", "strength": "10 mg", "form": "Tablet",
-        "indication": "Asthma maintenance, seasonal allergies",
-        "off_label": "Chronic urticaria adjunct",
-        "sig": "Take 1 tablet by mouth once daily in the evening",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Phenobarbital, Rifampin",
-        "contraindications": "Hypersensitivity to montelukast",
+        "patient": "James Smith", "dob": "2015-02-14", "phone": "(555) 014-2231",
+        "medication": "Cetirizine HCl", "brand": "Zyrtec",
+        "strength": "10 mg", "form": "Tablet",
+        "indication": "Seasonal allergies", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth once daily.",
+        "quantity": 30, "refills_remaining": 2, "next_refill_due": "21 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Emily Park, MD", "dea": "None (Non-controlled)",
+        "adherence_score": "89%",
+        "interactions": "Alcohol, other sedating antihistamines",
+        "contraindications": "Severe kidney impairment",
+        "side_effects": "Mild drowsiness, dry mouth",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "DailyMed",
     },
     {
-        "medication": "Amlodipine", "brand": "Norvasc", "strength": "5 mg", "form": "Tablet",
-        "indication": "High blood pressure, angina",
-        "off_label": "Raynaud phenomenon",
-        "sig": "Take 1 tablet by mouth once daily",
-        "dea_schedule": "Non-Controlled",
-        "interactions": "Simvastatin (dose limit), CYP3A4 inhibitors",
-        "contraindications": "Hypersensitivity to amlodipine",
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Omeprazole", "brand": "Prilosec",
+        "strength": "20 mg", "form": "Capsule",
+        "indication": "Acid reflux (GERD)", "off_label": "None documented",
+        "sig": "Take 1 capsule by mouth 30 minutes before breakfast.",
+        "quantity": 30, "refills_remaining": 2, "next_refill_due": "11 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "95%",
+        "interactions": "Clopidogrel, methotrexate",
+        "contraindications": "Hypersensitivity to proton pump inhibitors",
+        "side_effects": "Headache, digestive upset",
+        "storage": "Room temperature, protect from moisture",
+        "substitution": "Permitted", "source": "Drugs@FDA",
+    },
+    {
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Warfarin Sodium", "brand": "Coumadin",
+        "strength": "5 mg", "form": "Tablet",
+        "indication": "Blood clot prevention", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth once daily as directed by INR.",
+        "quantity": 90, "refills_remaining": 1, "next_refill_due": "3 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Robert Chen, DO", "dea": "None (Non-controlled)",
+        "adherence_score": "99%",
+        "interactions": "NSAIDs, antibiotics, vitamin K foods",
+        "contraindications": "Active bleeding, pregnancy",
+        "side_effects": "Bruising, bleeding risk",
+        "storage": "Room temperature",
+        "substitution": "Dispense as Written", "source": "AHFS",
+    },
+    {
+        "patient": "Mary Smith", "dob": "1978-04-12", "phone": "(555) 014-2231",
+        "medication": "Ibuprofen", "brand": "Motrin",
+        "strength": "800 mg", "form": "Tablet",
+        "indication": "Pain and inflammation", "off_label": "None documented",
+        "sig": "Take 1 tablet by mouth every 8 hours with food as needed.",
+        "quantity": 60, "refills_remaining": 1, "next_refill_due": "16 days",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Sarah Jenkins, MD", "dea": "BJ8839207",
+        "adherence_score": "87%",
+        "interactions": "Warfarin, lisinopril, aspirin",
+        "contraindications": "Active GI bleeding, late pregnancy",
+        "side_effects": "Stomach upset, elevated blood pressure",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "Drugs@FDA",
+    },
+    {
+        "patient": "James Smith", "dob": "2015-02-14", "phone": "(555) 014-2231",
+        "medication": "Amoxicillin", "brand": "Amoxil",
+        "strength": "500 mg", "form": "Capsule",
+        "indication": "Ear infection", "off_label": "None documented",
+        "sig": "Take 1 capsule by mouth three times daily for 7 days.",
+        "quantity": 21, "refills_remaining": 0, "next_refill_due": "Complete course",
+        "dea_schedule": "Non-controlled",
+        "prescriber": "Dr. Emily Park, MD", "dea": "None (Non-controlled)",
+        "adherence_score": "100%",
+        "interactions": "Methotrexate, oral contraceptives",
+        "contraindications": "Penicillin allergy",
+        "side_effects": "Diarrhea, rash",
+        "storage": "Room temperature",
+        "substitution": "Permitted", "source": "DailyMed",
+    },
+    {
+        # Trips R3: the registration fails its own check digit.
+        "patient": "Patricia Johnson", "dob": "1954-09-03", "phone": "(555) 014-8867",
+        "medication": "Temazepam", "brand": "Restoril",
+        "strength": "15 mg", "form": "Capsule",
+        "indication": "Insomnia", "off_label": "None documented",
+        "sig": "Take 1 capsule by mouth at bedtime.",
+        "quantity": 30, "refills_remaining": 1, "next_refill_due": "19 days",
+        "dea_schedule": "Schedule IV",
+        "prescriber": "Dr. Marcus Hale, NP", "dea": "MH5502841",
+        "adherence_score": "94%",
+        "interactions": "CNS depressants, alcohol",
+        "contraindications": "Pregnancy, sleep apnea",
+        "side_effects": "Morning drowsiness, dizziness",
+        "storage": "Secure locked location",
+        "substitution": "Permitted", "source": "DailyMed",
     },
 ]
 
-PATIENTS = [
-    {"name": "Patricia Johnson", "dob": "1958-03-14", "phone": "(919) 555-0142"},
-    {"name": "Mary Smith", "dob": "1985-07-22", "phone": "(919) 555-0187"},
-    {"name": "James Smith", "dob": "2012-11-05", "phone": "(919) 555-0163"},
-]
 
-PRESCRIBERS = [
-    {"name": "Dr. Susan Lee, MD", "dea": "BL6428731"},
-    {"name": "Dr. Marcus Webb, MD", "dea": "BW3157246"},
-    {"name": "Dr. Anita Rao, DO", "dea": "FR8203914"},
-]
-
-QUANTITIES = [30, 60, 90, 120]
-SOURCES = ["DailyMed SPL", "Drugs@FDA", "AHFS Compendium"]
-
-DEFAULT_BATCH_SIZE = 15
+def _with_id(event, index):
+    """Takes a roster entry and its position and returns a copy with an event id."""
+    out = dict(event)
+    out["event_id"] = f"EVT-{1001 + index}"
+    # Refills authorized on the document; defaults to what remains.
+    out.setdefault("refills", out.get("refills_remaining", 0))
+    return out
 
 
-def generate_mock_event(index=0):
-    """Build one deterministic refill event for a given stream index."""
-    rng = random.Random(1000 + index)
-    drug = DRUG_CATALOG[index % len(DRUG_CATALOG)]
-    patient = PATIENTS[index % len(PATIENTS)]
-    prescriber = PRESCRIBERS[index % len(PRESCRIBERS)]
-
-    quantity = QUANTITIES[rng.randrange(len(QUANTITIES))]
-    refills_remaining = rng.randrange(0, 6)
-    days_until_due = rng.randrange(1, 29)
-    adherence = rng.randrange(68, 100)
-    controlled = "Schedule" in drug["dea_schedule"]
-
-    event = {
-        "event_id": "RX-2026-%04d" % (1000 + index),
-        "patient": patient["name"],
-        "dob": patient["dob"],
-        "phone": patient["phone"],
-        "quantity": quantity,
-        "refills_remaining": refills_remaining,
-        "next_refill_due": "%d Day%s" % (days_until_due, "" if days_until_due == 1 else "s"),
-        "adherence_score": "%d%%" % adherence,
-        "prescriber": prescriber["name"],
-        "dea": prescriber["dea"],
-        "substitution": "Dispense as Written" if controlled else "Permitted (AB-rated)",
-        "source": SOURCES[index % len(SOURCES)],
-        "patient_data": {
-            "name": patient["name"],
-            "adherence_score": "%d%%" % adherence,
-        },
-    }
-    event.update(drug)
-    return event
+def generate_mock_event():
+    """Returns one representative refill event."""
+    return _with_id(_ROSTER[0], 0)
 
 
 def fetch_live_batch(count):
-    """Return a batch of `count` refill events."""
-    return [generate_mock_event(i) for i in range(count)]
+    """Returns `count` events, cycling through the roster deterministically."""
+    return [_with_id(_ROSTER[i % len(_ROSTER)], i) for i in range(count)]
 
 
 def get_refill_events():
-    """Entry point used by the /api/events serverless function."""
-    return fetch_live_batch(DEFAULT_BATCH_SIZE)
+    """Returns the full queue of refill events, one per roster entry."""
+    return [_with_id(event, i) for i, event in enumerate(_ROSTER)]
