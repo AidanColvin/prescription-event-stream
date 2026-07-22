@@ -274,7 +274,7 @@
                 <thead>
                     <tr>
                         <th>Patient & Rx ID</th>
-                        <th>Medication</th>
+                        <th>Medication (Generic / Brand)</th>
                         <th>DEA Schedule</th>
                         <th>Quantity & Refills</th>
                         <th>Compliance Status</th>
@@ -290,7 +290,7 @@
                 <thead>
                     <tr>
                         <th>Patient Name</th>
-                        <th>Prescribed Regimen</th>
+                        <th>Prescribed Regimen (Generic / Brand)</th>
                         <th>Adherence</th>
                         <th>Drug Interactions & Warnings</th>
                         <th>Prescriber</th>
@@ -327,11 +327,6 @@
                 if (!response.ok) throw new Error('Network response failed');
                 globalData = await response.json();
                 retryBanner.style.display = 'none';
-                
-                document.getElementById('stat-total').textContent = globalData.stats.total;
-                document.getElementById('stat-large').textContent = globalData.stats.large_refills;
-                document.getElementById('stat-avg').textContent = globalData.stats.avg_quantity;
-
                 renderData();
             } catch (err) {
                 retryBanner.style.display = 'block';
@@ -391,6 +386,16 @@
                 return pat.includes(query) || med.includes(query) || brand.includes(query) || sched.includes(query) || ind.includes(query) || inter.includes(query);
             });
 
+            // Dynamically update macro summary cards based on search results
+            let filteredTotal = filtered.length;
+            let filteredLarge = filtered.filter(e => e.quantity > 60).length;
+            let filteredQtySum = filtered.reduce((acc, curr) => acc + curr.quantity, 0);
+            let filteredAvg = filteredTotal > 0 ? Math.round(filteredQtySum / filteredTotal) : 0;
+
+            document.getElementById('stat-total').textContent = filteredTotal;
+            document.getElementById('stat-large').textContent = filteredLarge;
+            document.getElementById('stat-avg').textContent = filteredAvg;
+
             if (currentView === 'patient') {
                 const tbody = document.getElementById('tbody-patient');
                 tbody.innerHTML = filtered.length ? '' : `<tr><td colspan="5" style="text-align:center; padding:40px; color:var(--text-secondary);">No matching medications or patients found.</td></tr>`;
@@ -413,7 +418,7 @@
                     const badgeClass = ev.high_volume === 'Review Required' ? 'badge-review' : 'badge-standard';
                     tr.innerHTML = `
                         <td><strong>${ev.patient}</strong><br><span style="font-family:monospace; font-size:12px; color:var(--text-secondary);">${ev.event_id}</span></td>
-                        <td><strong>${ev.medication}</strong> (${ev.strength} ${ev.form})</td>
+                        <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="font-size:12px; color:var(--text-secondary);">${ev.strength} ${ev.form}</span></td>
                         <td><span style="font-weight:600; color:${ev.dea_schedule.includes('II') ? '#c62828' : '#1d1d1f'};">${ev.dea_schedule}</span></td>
                         <td>Qty: <strong>${ev.quantity}</strong><br><span style="font-size:12px; color:var(--text-secondary);">Refills: ${ev.refills_remaining}</span></td>
                         <td><span class="badge ${badgeClass}">${ev.high_volume}</span><br><span style="font-size:11px; color:var(--text-secondary);">Source: ${ev.source}</span></td>
@@ -427,7 +432,7 @@
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
                         <td><strong>${ev.patient}</strong><br><span style="font-size:12px; color:var(--text-secondary);">Phone: ${ev.phone}</span></td>
-                        <td><strong>${ev.medication}</strong> / ${ev.brand}<br><span style="font-size:12px; color:var(--text-secondary);">Sig: ${ev.sig}</span></td>
+                        <td><strong>${ev.medication} / ${ev.brand}</strong><br><span style="font-size:12px; color:var(--text-secondary);">${ev.strength} ${ev.form} — Sig: ${ev.sig}</span></td>
                         <td><span style="font-weight:600; color: ${parseInt(ev.adherence_score) < 85 ? '#c62828' : '#2e7d32'};">${ev.adherence_score}</span></td>
                         <td><span style="color:#c62828; font-size:12px;">Interactions: ${ev.interactions}</span><br><span style="font-size:12px; color:var(--text-secondary);">Contra: ${ev.contraindications}</span></td>
                         <td>${ev.prescriber}<br><span style="font-size:12px; color:var(--text-secondary);">DEA: ${ev.dea}</span></td>
