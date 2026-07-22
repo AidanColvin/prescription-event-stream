@@ -1,11 +1,15 @@
 # prescription-event-stream
 
+![tests](https://github.com/AidanColvin/prescription-event-stream/actions/workflows/tests.yml/badge.svg)
+
 A demo that streams simulated prescription refill events, gives every
 prescription a second look against federal dispensing rules, and renders
 the result on three surfaces — patient, pharmacist, and prescriber — in
 the language each reader needs.
 
 **Live app:** https://prescription-event-stream.vercel.app
+
+![The pharmacist surface stopping a pediatric zolpidem prescription](docs/second-look.png)
 
 | Page | Who it serves | What it answers |
 | --- | --- | --- |
@@ -107,6 +111,7 @@ patients.
   evaluated queue as JSON at `/api/events`.
 - `index.html`, `pharmacist/`, `md/`, `how-it-works/` — static pages,
   no framework and no build step, sharing one stylesheet in `assets/`.
+- `.github/workflows/tests.yml` — CI. The full suite runs on every push.
 
 ## Run it locally
 
