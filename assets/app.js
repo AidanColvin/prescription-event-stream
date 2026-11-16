@@ -42,8 +42,10 @@ function matchingMedications(events, query) {
   return [...seen.values()].slice(0, 3);
 }
 
-/* Renders the medication information card shown when a search names a drug. */
-function medInfoCard(ev, query) {
+/* Renders the medication information card shown when a search names a drug.
+   Pass rerender to include live FAERS signals and PubMed references;
+   detailed adds the statistic names and confidence intervals. */
+function medInfoCard(ev, query, rerender, detailed) {
   const field = (label, value) => `
     <div><div class="detail-label">${label}</div>
     <div class="detail-value">${highlight(value, query)}</div></div>`;
@@ -65,17 +67,107 @@ function medInfoCard(ev, query) {
         ${field("Not for people with", ev.contraindications)}
         ${field("How to store it", ev.storage)}
       </div>
+      ${rerender ? signalSection(ev.medication, detailed, rerender) : ""}
+      ${rerender ? referenceSection(ev.medication, rerender) : ""}
       <div class="medinfo-source">Label source: ${esc(ev.source)}</div>
     </div>`;
 }
 
 /* Renders the "About this medication" section, or nothing. */
-function medInfoSection(events, query) {
+function medInfoSection(events, query, rerender, detailed) {
   const meds = matchingMedications(events, query);
   if (!meds.length) return "";
   return `
     <h2 class="section-title">About ${meds.length === 1 ? "this medication" : "these medications"}</h2>
-    ${meds.map((m) => medInfoCard(m, query)).join("")}`;
+    ${meds.map((m) => medInfoCard(m, query, rerender, detailed)).join("")}`;
+}
+
+/* Live FAERS signal statistics per drug, via /api/signal. Cached per drug. */
+const signalCache = new Map();
+
+/* Starts one fetch for a drug's FAERS signals, then re-renders. */
+function scheduleSignalLookup(drug, rerender) {
+  signalCache.set(drug, "pending");
+  fetch(`/api/signal?name=${encodeURIComponent(drug)}`)
+    .then((response) => response.json())
+    .then((info) => { signalCache.set(drug, info.found ? info : null); rerender(); })
+    .catch(() => { signalCache.set(drug, null); rerender(); });
+}
+
+/* Renders one flagged adverse event signal: PRR and case count for
+   patients, full statistics with intervals when detailed. */
+function signalRow(s, detailed) {
+  if (!detailed) {
+    return `<li>${esc(s.event)} &middot; PRR ${s.prr.toFixed(1)}
+      &middot; ${s.case_count} reports</li>`;
+  }
+  return `<li>${esc(s.event)}
+    &middot; PRR ${s.prr.toFixed(2)} (95% CI ${s.prr_ci_low.toFixed(2)} to ${s.prr_ci_high.toFixed(2)})
+    &middot; ROR ${s.ror.toFixed(2)} (95% CI ${s.ror_ci_low.toFixed(2)} to ${s.ror_ci_high.toFixed(2)})
+    &middot; chi-square ${s.chi_square.toFixed(1)}
+    &middot; ${s.case_count} reports</li>`;
+}
+
+/* Renders the "Reported adverse event signals" block for one drug, or
+   nothing while the lookup is pending or when no signal is flagged. */
+function signalSection(drug, detailed, rerender) {
+  if (!signalCache.has(drug)) {
+    scheduleSignalLookup(drug, rerender);
+    return "";
+  }
+  const info = signalCache.get(drug);
+  if (info === "pending" || !info) return "";
+  const flagged = (info.signals || []).filter((s) => s.flagged);
+  if (!flagged.length) return "";
+  return `
+    <div class="signal-block">
+      <div class="detail-label">Reported adverse event signals</div>
+      <ul class="signal-list">${flagged.map((s) => signalRow(s, detailed)).join("")}</ul>
+      <p class="signal-disclaimer">${esc(info.disclaimer)}</p>
+    </div>`;
+}
+
+/* Peer-reviewed evidence from PubMed, carried on the /api/drug payload.
+   Cached per drug name so a curated card fetches references once. */
+const referenceCache = new Map();
+
+/* Starts one /api/drug fetch to pull a drug's references, then re-renders. */
+function scheduleReferenceLookup(drug, rerender) {
+  referenceCache.set(drug, "pending");
+  fetch(`/api/drug?name=${encodeURIComponent(drug)}`)
+    .then((response) => response.json())
+    .then((info) => { referenceCache.set(drug, info.found ? info : null); rerender(); })
+    .catch(() => { referenceCache.set(drug, null); rerender(); });
+}
+
+/* Renders the "Peer-reviewed evidence" list from reference dicts, or
+   nothing when there are none. */
+function referenceList(refs, note) {
+  if (!refs || !refs.length) return "";
+  const items = refs.map((r) => {
+    const meta = [r.journal, r.year].filter(Boolean).join(", ");
+    return `<li><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${esc(r.title)}</a>${meta ? ` <span class="ref-meta">${esc(meta)}</span>` : ""}</li>`;
+  }).join("");
+  return `
+    <div class="reference-block">
+      <div class="detail-label">Peer-reviewed evidence</div>
+      <ul class="reference-list">${items}</ul>
+      <p class="reference-note">${esc(note || "")}</p>
+    </div>`;
+}
+
+/* Returns the reference block for a drug, fetching it via /api/drug on
+   first use. Curated cards and rows call this; the FDA-label card renders
+   its references straight from the payload it already holds. */
+function referenceSection(drug, rerender) {
+  if (!drug || !rerender) return "";
+  if (!referenceCache.has(drug)) {
+    scheduleReferenceLookup(drug, rerender);
+    return "";
+  }
+  const info = referenceCache.get(drug);
+  if (info === "pending" || !info) return "";
+  return referenceList(info.references, info.references_note);
 }
 
 /* Live lookup for drugs not in the family's data, via /api/drug
@@ -98,7 +190,7 @@ function scheduleExternalLookup(query, rerender) {
 }
 
 /* Renders the card for an FDA-label lookup result. */
-function externalMedCard(info, query) {
+function externalMedCard(info, query, rerender, detailed) {
   const field = (label, value) => value ? `
     <div><div class="detail-label">${label}</div>
     <div class="detail-value">${highlight(value, query)}</div></div>` : "";
@@ -118,6 +210,8 @@ function externalMedCard(info, query) {
         ${field("Contraindications", info.contraindications)}
         ${field("Pediatric use", info.pediatric_use)}
       </div>
+      ${rerender ? signalSection(info.generic_name, detailed, rerender) : ""}
+      ${referenceList(info.references, info.references_note)}
       <div class="medinfo-source">${esc(info.source)} &middot;
         <a href="${esc(info.dailymed_url)}" target="_blank" rel="noopener noreferrer">Full label on DailyMed</a>
       </div>
@@ -126,13 +220,13 @@ function externalMedCard(info, query) {
 
 /* Returns the external-lookup section when the search names a drug the
    family data cannot answer: a card once fetched, a hint while fetching. */
-function externalMedSection(events, query, rerender) {
+function externalMedSection(events, query, rerender, detailed) {
   if (!query || query.length < 4) return "";
   if (matchingMedications(events, query).length) return "";
   if (externalCache.has(query)) {
     const info = externalCache.get(query);
     if (!info) return "";
-    return `<h2 class="section-title">From the FDA label database</h2>${externalMedCard(info, query)}`;
+    return `<h2 class="section-title">From the FDA label database</h2>${externalMedCard(info, query, rerender, detailed)}`;
   }
   scheduleExternalLookup(query, rerender);
   return `<p class="external-hint">Checking the FDA label database&hellip;</p>`;

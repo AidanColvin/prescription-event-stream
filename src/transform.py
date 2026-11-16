@@ -34,15 +34,19 @@ def dea_status(event):
     return "valid" if is_valid_dea_number(normalized) else "invalid"
 
 
-def process_events(events):
-    """Takes raw events, runs every rule on each, and returns the payload
-    the frontend renders. Every count in the payload is computed here;
-    nothing a screen shows is hardcoded.
+def evaluate_one(event):
+    """Takes one raw event and returns it flagged and evaluated against
+    every rule. This is the step a log replay folds over."""
+    return evaluate_event(flag_high_quantity(event))
+
+
+def shape_payload(evaluated):
+    """Takes evaluated events and returns the payload the frontend renders.
+    Every count is computed here; nothing a screen shows is hardcoded.
 
     Each event keeps a nested `patient_data` block for surfaces that read
     the older shape, alongside the flat fields.
     """
-    evaluated = [evaluate_event(e) for e in transform_batch(events)]
     interaction_screen = screen_interactions(evaluated)
     attach_interaction_alerts(evaluated, interaction_screen)
     for event in evaluated:
@@ -68,3 +72,9 @@ def process_events(events):
             "avg_quantity": avg_quantity,
         },
     }
+
+
+def process_events(events):
+    """Takes raw events, runs every rule on each, and returns the payload
+    the frontend renders."""
+    return shape_payload([evaluate_one(e) for e in events])

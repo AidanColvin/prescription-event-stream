@@ -1,8 +1,9 @@
 """Serverless endpoint: /api/drug?name=<term>
 
-Looks up any drug against RxNorm and the openFDA label database and
-returns the shaped card the frontend renders. Responses are edge-cached
-for a day so repeat queries never re-hit the upstream APIs.
+Looks up any drug against RxNorm and the openFDA label database, attaches
+peer-reviewed references from PubMed, and returns the shaped card the
+frontend renders. Responses are edge-cached for a day so repeat queries
+never re-hit the upstream APIs.
 """
 
 from http.server import BaseHTTPRequestHandler
@@ -13,6 +14,7 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from src.drug_lookup import lookup_drug
+from src.pubmed import attach_references
 
 
 class handler(BaseHTTPRequestHandler):
@@ -20,7 +22,7 @@ class handler(BaseHTTPRequestHandler):
         try:
             params = parse_qs(urlparse(self.path).query)
             term = (params.get('name') or [''])[0]
-            result = lookup_drug(term)
+            result = attach_references(lookup_drug(term))
         except Exception:
             result = {"found": False}
 

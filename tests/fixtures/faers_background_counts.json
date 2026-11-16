@@ -1,0 +1,8 @@
+{
+  "results": [
+    { "term": "HEADACHE", "count": 200 },
+    { "term": "NAUSEA", "count": 500 },
+    { "term": "DIZZINESS", "count": 100 },
+    { "term": "RASH", "count": 1000 }
+  ]
+}

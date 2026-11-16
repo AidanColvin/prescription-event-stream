@@ -115,6 +115,7 @@
               <div><div class="detail-label">Avoid mixing with</div><div class="detail-value">${highlight(ev.interactions, query)}</div></div>
               <div><div class="detail-label">Not for people with</div><div class="detail-value">${esc(ev.contraindications)}</div></div>
             </div>
+            ${referenceSection(ev.medication, render)}
           </div>
         </div>`;
     }
@@ -129,7 +130,7 @@
         ? `<strong>${paused} prescription${paused === 1 ? "" : "s"}</strong> need${paused === 1 ? "s" : ""} your attention. Everything else is on track.`
         : "Everything is on track.";
 
-      const external = externalMedSection(events, query, render);
+      const external = externalMedSection(events, query, render, false);
 
       if (!visible.length) {
         container.innerHTML = external + (external.includes("medinfo") ? `
@@ -152,7 +153,7 @@
         return flagged(a[1]) - flagged(b[1]) || a[0].localeCompare(b[0]);
       });
 
-      container.innerHTML = medInfoSection(events, query) + external + people.map(([name, list]) => {
+      container.innerHTML = medInfoSection(events, query, render, false) + external + people.map(([name, list]) => {
         list.sort((a, b) => {
           const urgency = (e) => e.severity !== "clear" ? -1 : (parseInt(e.next_refill_due, 10) || 999);
           return urgency(a) - urgency(b);
