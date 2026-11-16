@@ -1,0 +1,39 @@
+{
+  "header": { "type": "esummary", "version": "0.3" },
+  "result": {
+    "uids": ["37000001", "36500002", "35900003", "35100004", "34700005"],
+    "37000001": {
+      "uid": "37000001",
+      "title": "Sertraline for major depressive disorder: a systematic review.",
+      "fulljournalname": "The Lancet Psychiatry",
+      "source": "Lancet Psychiatry",
+      "pubdate": "2023 Apr 15"
+    },
+    "36500002": {
+      "uid": "36500002",
+      "title": "A randomized trial of sertraline in generalized anxiety disorder",
+      "fulljournalname": "JAMA Psychiatry",
+      "source": "JAMA Psychiatry",
+      "pubdate": "2022 Nov"
+    },
+    "35900003": {
+      "uid": "35900003",
+      "title": "Sertraline and platelet function: a clinical review",
+      "source": "Am J Psychiatry",
+      "pubdate": "2022"
+    },
+    "35100004": {
+      "uid": "35100004",
+      "title": "",
+      "fulljournalname": "Journal With No Title Entry",
+      "pubdate": "2021 Jul"
+    },
+    "34700005": {
+      "uid": "34700005",
+      "title": "Long-term sertraline safety in adults: a cohort trial.",
+      "fulljournalname": "BMJ",
+      "source": "BMJ",
+      "pubdate": "2021 Feb 03"
+    }
+  }
+}

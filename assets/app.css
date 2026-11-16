@@ -219,6 +219,37 @@ h1 {
 .medinfo-source a { color: var(--accent); text-decoration: none; }
 .medinfo-source a:hover { text-decoration: underline; }
 .medinfo-external { border-left: 3px solid var(--accent); }
+
+/* Reported adverse event signals (FAERS disproportionality block) */
+.signal-block {
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.signal-list {
+  margin: 6px 0 0; padding-left: 18px;
+  font-size: 13.5px; line-height: 1.6;
+}
+.signal-disclaimer {
+  margin: 10px 0 0;
+  font-size: 12px; color: var(--muted);
+}
+
+/* Peer-reviewed evidence (PubMed reference list) */
+.reference-block {
+  margin-top: 16px; padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+.reference-list {
+  margin: 6px 0 0; padding-left: 18px;
+  font-size: 13.5px; line-height: 1.6;
+}
+.reference-list a { color: var(--accent); text-decoration: none; }
+.reference-list a:hover { text-decoration: underline; }
+.ref-meta { color: var(--muted); font-size: 12.5px; }
+.reference-note {
+  margin: 10px 0 0;
+  font-size: 12px; color: var(--muted);
+}
 .external-hint {
   text-align: center; font-size: 13px; color: var(--muted);
   margin: 0 0 20px;

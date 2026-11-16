@@ -154,7 +154,7 @@
         : "No prescriptions from this panel were stopped.";
 
       const visible = events.filter((ev) => matchesQuery(ev, query));
-      const external = externalMedSection(events, query, render);
+      const external = externalMedSection(events, query, render, false);
       if (!visible.length) {
         container.innerHTML = external + (external.includes("medinfo") ? `
           <p class="external-hint">No prescriptions in this panel involve it.</p>` : `
@@ -177,7 +177,7 @@
         : "";
 
       container.innerHTML = `
-        ${medInfoSection(events, query)}
+        ${medInfoSection(events, query, render, false)}
         ${external}
         ${alerts}
         ${screenSection}

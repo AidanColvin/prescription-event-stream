@@ -5,23 +5,21 @@ import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from src.ingestion import get_refill_events
-from src.transform import process_events
+from src.event_log import replay_roster
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             parsed_path = urlparse(self.path)
             query_params = parse_qs(parsed_path.query)
-            
-            raw_events = get_refill_events()
+
+            limit = None
             if 'count' in query_params:
                 try:
-                    count = max(1, min(int(query_params['count'][0]), 100))
-                    raw_events = raw_events[:count]
+                    limit = max(1, min(int(query_params['count'][0]), 100))
                 except ValueError:
                     pass
-            result = process_events(raw_events)
+            result = replay_roster(limit).payload()
 
             self.send_response(200)
             self.send_header('Content-type', 'application/json')

@@ -1,0 +1,7 @@
+{
+  "results": [
+    { "term": "HEADACHE", "count": 50 },
+    { "term": "NAUSEA", "count": 30 },
+    { "term": "DIZZINESS", "count": 20 }
+  ]
+}
